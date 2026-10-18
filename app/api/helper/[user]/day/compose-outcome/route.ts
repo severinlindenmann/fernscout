@@ -2,6 +2,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { recordComposeOutcome, wordEditDistance, type ComposeOutcomeKind, type ComposeVariantKind } from "@/lib/helper/composeOutcome";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ function words(raw: unknown): string {
  * request; neither string, nor the distance's own exact value, is ever
  * written anywhere — only the variant, the outcome and the capped number.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day/compose-outcome">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day/compose-outcome">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -45,4 +46,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const distance = outcome === "edited" ? wordEditDistance(words(body.composedText), words(body.savedText)) : 0;
   await recordComposeOutcome(user, variant, outcome, distance);
   return Response.json({ ok: true });
-}
+}, { route: "/api/helper/[user]/day/compose-outcome" });

@@ -9,6 +9,7 @@
 import { trackEditsGetDoc, trackEditsPutResponse } from "@/app/api/v2/[user]/trips/[trip]/track-edits/route";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ async function guard(user: string): Promise<Response | null> {
   return null;
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/track-edits">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/track-edits">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
@@ -33,9 +34,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
   const denied = await guard(user);
   if (denied) return denied;
   return trackEditsGetDoc(user, trip);
-}
+}, { route: "/api/web/[user]/trips/[trip]/track-edits" });
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/track-edits">) {
+export const PUT = withV2Log(async function PUT(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/track-edits">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
@@ -43,4 +44,4 @@ export async function PUT(request: Request, { params }: RouteContext<"/api/web/[
   const denied = await guard(user);
   if (denied) return denied;
   return trackEditsPutResponse(user, trip, request);
-}
+}, { route: "/api/web/[user]/trips/[trip]/track-edits" });

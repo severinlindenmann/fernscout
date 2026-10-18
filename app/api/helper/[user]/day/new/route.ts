@@ -4,6 +4,7 @@ import { findDayForDate } from "@/lib/studio/day";
 import { createDayTransactional, type CreateDayInput } from "@/lib/studio/createDay";
 import { wrote, refused } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ function number(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day/new">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day/new">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -115,4 +116,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   wrote(user, "add_day", { trip: tripId, slug: result.slug, date });
   return Response.json({ ok: true, trip: tripId, slug: result.slug }, { status: 201 });
-}
+}, { route: "/api/helper/[user]/day/new" });

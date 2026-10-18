@@ -7,6 +7,7 @@ import { isValidTripId, renameTrip } from "@/lib/tripRename";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const NOT_FOR_AGENTS = {
     "POST /api/v2/{user}/trips/{trip}/rename.",
 };
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/rename">,
 ) {
@@ -46,4 +47,4 @@ export async function POST(
   }
 
   return Response.json({ ok: true, id: renamed.id });
-}
+}, { route: "/api/web/[user]/trips/[trip]/rename" });

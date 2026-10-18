@@ -15,6 +15,7 @@ import { mediaKey } from "@/lib/photos";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/describe-photos">,
 ) {
@@ -235,4 +236,4 @@ export async function POST(
     // somebody's phone.
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
-}
+}, { route: "/api/helper/[user]/day/describe-photos" });

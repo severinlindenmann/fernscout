@@ -53,6 +53,7 @@ import { isOwner } from "@/lib/contacts/session";
 import { contactsInGroups, saveTellChoice } from "@/lib/digest/tellChoice";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -114,7 +115,7 @@ function blankVisibility(day: DayFile, locales: readonly string[]): boolean {
   return missingAtPublish(day, locales).some((row) => row.field === "visibility");
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/days/[slug]/publish">,
 ) {
@@ -319,4 +320,4 @@ export async function POST(
       { status: 500 },
     );
   }
-}
+}, { route: "/api/web/[user]/trips/[trip]/days/[slug]/publish" });

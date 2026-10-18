@@ -9,6 +9,7 @@ import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import { isAssistantChoice, ASSISTANT_CHOICES, readAssistantChoice, writeAssistantChoice } from "@/lib/studio/assistantChoice";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +25,14 @@ async function gate(request: Request, user: string): Promise<Response | null> {
   return null;
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/studio/assistant">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/studio/assistant">) {
   const { user } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
   return Response.json({ ok: true, assistant: readAssistantChoice(user) });
-}
+}, { route: "/api/web/[user]/studio/assistant" });
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/studio/assistant">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/studio/assistant">) {
   const { user } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
@@ -47,4 +48,4 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
   }
   writeAssistantChoice(user, body.assistant);
   return Response.json({ ok: true, assistant: body.assistant });
-}
+}, { route: "/api/web/[user]/studio/assistant" });

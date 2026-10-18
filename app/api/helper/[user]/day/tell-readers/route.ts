@@ -10,6 +10,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { logMessage } from "@/lib/messages/log";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export const dynamic = "force-dynamic";
  * readership. `isHelperOwner` is an owner check, not a write check, so that
  * is true here by construction rather than by a second gate.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/tell-readers">,
 ) {
@@ -122,4 +123,4 @@ export async function POST(
   const summary = mailSummary(outcome);
   wrote(user, "tell_readers", { trip: tripId, slug, channel, ...summary });
   return Response.json({ ok: true, slug, channel, ...summary });
-}
+}, { route: "/api/helper/[user]/day/tell-readers" });

@@ -20,6 +20,7 @@ import { isOwner } from "@/lib/contacts/session";
 import { tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -35,16 +36,16 @@ async function gate(request: Request, user: string): Promise<Response | null> {
   return null;
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/reminder">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/reminder">) {
   const { user, trip } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
   const reminder = readTripReminder(tripRef(user, trip));
   if (!reminder) return Response.json({ error: "unknown_trip" }, { status: 404 });
   return Response.json({ ok: true, ...reminder });
-}
+}, { route: "/api/web/[user]/trips/[trip]/reminder" });
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/reminder">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/reminder">) {
   const { user, trip } = await params;
   const refused = await gate(request, user);
   if (refused) return refused;
@@ -63,4 +64,4 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
     return Response.json({ error: result.error, ...(result.message ? { message: result.message } : {}) }, { status });
   }
   return Response.json({ ok: true, enabled: result.enabled, channel: result.channel });
-}
+}, { route: "/api/web/[user]/trips/[trip]/reminder" });

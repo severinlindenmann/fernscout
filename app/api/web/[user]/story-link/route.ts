@@ -9,15 +9,16 @@ import { parseLocale } from "@/lib/contacts/locale";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
 import { ensureStoryLink, pauseStoryLink, resumeStoryLink, storyLinkState } from "@/lib/contacts/storyLink";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/story-link">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/story-link">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
   return Response.json(await storyLinkState(user), { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/story-link" });
 
 /**
  * `{ action: "start" | "pause" | "resume" }` — every call an explicit owner
@@ -25,7 +26,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
  * never un-pauses a paused link. `resume` is the one action that does, and
  * only when the owner presses it themselves.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/story-link">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/story-link">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -48,4 +49,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
     default:
       return Response.json({ error: "invalid_request" }, { status: 400, headers: PRIVATE });
   }
-}
+}, { route: "/api/web/[user]/story-link" });

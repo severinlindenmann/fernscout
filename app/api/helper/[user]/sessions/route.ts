@@ -3,6 +3,7 @@ import { sessionsOf } from "@/lib/helper/sessions";
 import { liveSession } from "@/lib/helper/thread";
 import { AS_AUTHOR, getAllEntries } from "@/lib/entries";
 import { getTrips, tripRef } from "@/lib/trips";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * `/api/v1` and outside the published contract, for the reason
  * `app/api/helper/[user]/day/route.ts` sets out at length.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/sessions">,
 ) {
@@ -60,4 +61,4 @@ export async function GET(
     trips,
     ...(tripId ? { tripTitle: named?.title ?? "", days } : {}),
   });
-}
+}, { route: "/api/helper/[user]/sessions" });

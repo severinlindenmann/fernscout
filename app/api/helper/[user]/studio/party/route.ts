@@ -4,6 +4,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { extendOnTouch } from "@/lib/staging/expiry";
 import { readManifest, writeManifest } from "@/lib/staging/manifest";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ const MAX_NAME_LENGTH = 100;
  * reassurance on the screen itself ("never shown to anyone you haven't let
  * in") and `RunManifest.partySize`'s own doc comment.
  */
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/party">,
 ) {
@@ -64,4 +65,4 @@ export async function PATCH(
   writeManifest(user, current);
 
   return Response.json({ ok: true, partySize: current.partySize, partyNames: current.partyNames });
-}
+}, { route: "/api/helper/[user]/studio/party" });

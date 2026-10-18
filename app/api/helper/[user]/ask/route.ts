@@ -17,6 +17,7 @@ import {
 import { requestLocale } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +80,7 @@ const MAX_SAID = 4000;
  * — `notYourJournal` gives the same answer for a journal that is not yours as
  * for one that does not exist.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -99,7 +100,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
     // carries an upload's own size ceiling.
     sayLimit: MAX_SAID,
   });
-}
+}, { route: "/api/helper/[user]/ask" });
 
 /**
  * Start the conversation over — B899.
@@ -113,7 +114,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
  * body to read and nothing to document beyond "the conversation is gone", and
  * a second file would be a second place to keep the owner check in step.
  */
-export async function DELETE(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -123,9 +124,9 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/he
   }
   forget(user);
   return Response.json({ ok: true });
-}
+}, { route: "/api/helper/[user]/ask" });
 
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/ask">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -471,4 +472,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     },
   });
   return new Response(stream, { headers: { "content-type": "application/x-ndjson" } });
-}
+}, { route: "/api/helper/[user]/ask" });

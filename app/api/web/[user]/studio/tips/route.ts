@@ -9,10 +9,11 @@ import { isOwner } from "@/lib/contacts/session";
 import { setOwnerTips } from "@/lib/journals";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/studio/tips">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]/studio/tips">) {
   if (request.headers.get("authorization")) {
     return Response.json(
       { error: "not_for_agents", message: "This is the owner's own door, from a browser — the tips checkbox has no agent-facing equivalent." },
@@ -32,4 +33,4 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
   const result = setOwnerTips(user, body.optIn);
   if (!result.ok) return Response.json({ error: result.error, message: result.message }, { status: 400 });
   return Response.json({ ok: true, optIn: body.optIn });
-}
+}, { route: "/api/web/[user]/studio/tips" });

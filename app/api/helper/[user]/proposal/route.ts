@@ -5,6 +5,7 @@ import { proposed } from "@/lib/helper/thread";
 import { proposalFor, writeTool } from "@/lib/helper/tools";
 import { requestLocale } from "@/lib/locales";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export const dynamic = "force-dynamic";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/proposal">,
 ) {
@@ -83,4 +84,4 @@ export async function POST(
   const { proposal, blocks } = await proposalFor(user, tool, args, say, today);
   if (proposal) proposed(user, proposal.tool, proposal.arguments);
   return Response.json({ ok: true, proposal, blocks });
-}
+}, { route: "/api/helper/[user]/proposal" });

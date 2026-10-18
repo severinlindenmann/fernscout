@@ -11,11 +11,12 @@ import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 
 import { journalPath } from "@/lib/journalPath";
+import { withV2Log } from "@/lib/api/v2/route";
 export const dynamic = "force-dynamic";
 
 const STATUS: Record<string, number> = { unknown_deleted_day: 404, unknown_trip: 404, slug_taken: 409, not_restored: 409 };
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/deleted-days/[trip]/[id]/restore">,
 ) {
@@ -41,4 +42,4 @@ export async function POST(
   }
   const slug = restored.stem.replace(/^\d{4}-\d{2}-\d{2}-/, "");
   return Response.json({ ok: true, trip: tripId, slug: restored.stem, status: "draft", href: `${journalPath(user)}/trips/${tripId}/day/${slug}` });
-}
+}, { route: "/api/web/[user]/deleted-days/[trip]/[id]/restore" });

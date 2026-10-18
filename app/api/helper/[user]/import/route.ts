@@ -8,6 +8,7 @@ import { findInboxFile } from "@/lib/inbox";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { withStorageQuota } from "@/lib/storageQuota";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,7 @@ type Body = {
   discard?: unknown;
 };
 
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/import">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/import">) {
   const { user } = await params;
   // B2346: the journal's own owner only — isHelperOwner admits the operator's
   // admin cookie (B480), who must not import or discard a person's location.
@@ -169,4 +170,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     // Said here so the answer does not depend on the capability being on.
     helper: isEnabled("helper", user),
   });
-}
+}, { route: "/api/helper/[user]/import" });

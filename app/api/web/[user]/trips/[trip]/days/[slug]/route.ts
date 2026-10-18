@@ -31,6 +31,7 @@ import { isExpired, isPending, listOrders as listPostcardOrders } from "@paid/po
 
 import { journalPath } from "@/lib/journalPath";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 export const dynamic = "force-dynamic";
 
 /**
@@ -88,7 +89,7 @@ const NOT_FOR_AGENTS = {
  * `If-Match` on save — the full document is not needed for that, so this
  * answers with only the tag rather than a second read-back door.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/days/[slug]">,
 ) {
@@ -115,9 +116,9 @@ export async function GET(
 
   const doc = dayDoc.parse(withResolvedTest(dayEchoInput(day, tripRef(user, tripId)), trip, day));
   return Response.json({ etag: etagFor(doc) });
-}
+}, { route: "/api/web/[user]/trips/[trip]/days/[slug]" });
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/days/[slug]">,
 ) {
@@ -168,7 +169,7 @@ export async function PATCH(
     },
     body: JSON.stringify(body.value),
   }));
-}
+}, { route: "/api/web/[user]/trips/[trip]/days/[slug]" });
 
 /**
  * DELETE — the owner deleting a day from the studio — B2259.
@@ -191,7 +192,7 @@ export async function PATCH(
  * `photobook_draft_uses_day`. Matched with `photobookPhotoRefs`, the same
  * reading the reshape sweep uses.
  */
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/days/[slug]">,
 ) {
@@ -281,4 +282,4 @@ export async function DELETE(
     return Response.json({ error: trashed.error, message: trashed.message }, { status: trashed.error === "unknown_day" ? 404 : 409 });
   }
   return Response.json({ ok: true, id: trashed.id, trip: tripId, slug: stem, wasPublished: day.status === "published", keptDays: TRASH_DAYS });
-}
+}, { route: "/api/web/[user]/trips/[trip]/days/[slug]" });

@@ -3,6 +3,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { extractThumbnail } from "@/lib/extract/thumbnail";
 import { parseWidth } from "@/lib/mediaSizes";
 import { stagedFileLocation } from "@/lib/staging/store";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,7 @@ export const dynamic = "force-dynamic";
  * animated WebP from ffmpeg, which an `<img>` loops without a player.
  * Missing decoders or corrupt media still return 404 for a quiet placeholder.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/thumb/[run]/[id]">,
 ) {
@@ -85,4 +86,4 @@ export async function GET(
       "X-Content-Type-Options": "nosniff",
     },
   });
-}
+}, { route: "/api/helper/[user]/studio/thumb/[run]/[id]" });

@@ -21,6 +21,7 @@ import { resizedBuffer } from "@/lib/media";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
 import { IMAGE_MAX_BYTES } from "@/lib/validate/media";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ const LIMIT = { max: 15, windowMs: 15 * 60 * 1000 };
 /** Plenty for a model to read faces, hair and clothing. */
 const PHOTO_WIDTH = 1080;
 
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/figures/from-photo">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/figures/from-photo">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
@@ -104,4 +105,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   } catch {
     return Response.json({ error: "model_failed" }, { status: 502 });
   }
-}
+}, { route: "/api/web/[user]/figures/from-photo" });

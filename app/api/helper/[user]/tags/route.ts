@@ -8,10 +8,11 @@
 // then be lying about.
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { tagsUsedBefore } from "@/lib/studio/tagsUsedBefore";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/tags">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/tags">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) return notYourJournal(request, user);
 
@@ -20,4 +21,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
   const q = url.searchParams.get("q")?.trim() || undefined;
 
   return Response.json({ ok: true, tags: tagsUsedBefore(user, { trip, q }) });
-}
+}, { route: "/api/helper/[user]/tags" });

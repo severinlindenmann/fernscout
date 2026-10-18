@@ -9,6 +9,7 @@ import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
 
 import { journalPath } from "@/lib/journalPath";
+import { withV2Log } from "@/lib/api/v2/route";
 export const dynamic = "force-dynamic";
 
 /**
@@ -30,7 +31,7 @@ export const dynamic = "force-dynamic";
  * wizard's promise is that the whole flow runs with nothing switched on and
  * nothing spent. The day's own page carries the notify control for afterwards.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/publish">,
 ) {
@@ -119,4 +120,4 @@ export async function POST(
     slug: published.slug,
     url: `${serverSite().url}${journalPath(user)}/trips/${tripId}/day/${published.slug}`,
   });
-}
+}, { route: "/api/helper/[user]/day/publish" });

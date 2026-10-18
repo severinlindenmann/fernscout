@@ -1,6 +1,7 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { receiveInboxUpload } from "@/lib/inboxUpload";
 import { listInbox, type InboxEntry } from "@/lib/inbox";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
  * validation and storage are `lib/inboxUpload.ts`, shared verbatim with
  * `POST /api/v1/[user]/inbox` so the two doors cannot drift.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/inbox">,
 ) {
@@ -27,7 +28,7 @@ export async function POST(
     return notYourJournal(request, user);
   }
   return receiveInboxUpload(user, request);
-}
+}, { route: "/api/helper/[user]/inbox" });
 
 function mediaItem(entry: InboxEntry) {
   return {
@@ -58,7 +59,7 @@ function mediaItem(entry: InboxEntry) {
  * and a timestamp are all a poll needs to notice a new arrival; it still
  * says nothing about what is inside the file.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/inbox">,
 ) {
@@ -77,4 +78,4 @@ export async function GET(
   }
   const items = listInbox(user).media.map(mediaItem);
   return Response.json({ ok: true, media: items });
-}
+}, { route: "/api/helper/[user]/inbox" });

@@ -14,6 +14,7 @@
 import { isOwner } from "@/lib/contacts/session";
 import { removeWaitingPin } from "@/lib/inbox";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ const NOT_FOR_AGENTS = {
   message: "This is the owner's own door, from a browser. There is no agent-facing way to discard a waiting pin.",
 };
 
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/inbox/pins/[id]">,
 ) {
@@ -36,4 +37,4 @@ export async function DELETE(
   const removed = removeWaitingPin(user, id);
   if (!removed) return Response.json({ error: "not_found" }, { status: 404 });
   return Response.json({ ok: true });
-}
+}, { route: "/api/web/[user]/inbox/pins/[id]" });

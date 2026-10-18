@@ -7,6 +7,7 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { cleanupPlan, runCleanup } from "@/lib/storageCleanup";
 import { formatBytes } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ async function guard(request: Request, user: string): Promise<Response | null> {
   return null;
 }
 
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/storage/cleanup">,
 ) {
@@ -44,9 +45,9 @@ export async function GET(
 
   const plan = await cleanupPlan(user);
   return Response.json({ ...plan, human: formatBytes(plan.bytes) });
-}
+}, { route: "/api/web/[user]/storage/cleanup" });
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/storage/cleanup">,
 ) {
@@ -71,4 +72,4 @@ export async function POST(
       "removed. Every photograph, day and order record is untouched — a printed book still says " +
       "it was printed; only its PDF is gone, and it can be built again.",
   });
-}
+}, { route: "/api/web/[user]/storage/cleanup" });

@@ -28,6 +28,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { readDayFile, resolveDayStem } from "@/lib/api/v2/store";
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { parseWeather, weatherFactLine } from "@/lib/weather";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -235,7 +236,7 @@ async function compose(user: string, tripId: string, body: Record<string, unknow
   return Response.json(answer);
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/write-day">,
 ) {
@@ -616,4 +617,4 @@ export async function POST(
   }
   await remember(key, fingerprint, answer);
   return Response.json(answer);
-}
+}, { route: "/api/helper/[user]/day/write-day" });

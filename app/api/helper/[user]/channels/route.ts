@@ -4,6 +4,7 @@ import { refused, wrote } from "@/lib/helper/thread";
 import { setJournalFeatures } from "@/lib/journals";
 import { CHANNEL_NAMES } from "@/lib/api/v2/schemas";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export const dynamic = "force-dynamic";
  */
 const CHANNELS = CHANNEL_NAMES;
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/channels">,
 ) {
@@ -60,4 +61,4 @@ export async function POST(
 
   wrote(user, "channels", { channel, enabled });
   return Response.json({ ok: true, channel, enabled });
-}
+}, { route: "/api/helper/[user]/channels" });

@@ -13,6 +13,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { findInboxFile } from "@/lib/inbox";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ function mappingFrom(raw: unknown): ColumnMapping | null {
   };
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/statement/apply">,
 ) {
@@ -181,4 +182,4 @@ export async function POST(
     })),
     truncated: Math.max(0, inTrip.length - SHOWN),
   });
-}
+}, { route: "/api/helper/[user]/statement/apply" });

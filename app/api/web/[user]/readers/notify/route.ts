@@ -1,6 +1,7 @@
 import { readJsonBody } from "@/lib/api/jsonBody";
 import { INVITE_CHANNELS, inviteOptions, sendInvite, type InviteChannel } from "@/lib/contacts/welcome";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * as an invite channel, B2339; SMS the same way, B2597 — readers sign in by
  * email only now.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/readers/notify">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/readers/notify">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -24,7 +25,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
   const options = contactId ? await inviteOptions(user, contactId) : null;
   if (!options) return Response.json({ error: "no_contact" }, { status: 404, headers: PRIVATE });
   return Response.json({ ok: true, ...options }, { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/readers/notify" });
 
 const STATUS: Record<string, number> = {
   no_contact: 404,
@@ -33,7 +34,7 @@ const STATUS: Record<string, number> = {
   send_failed: 502,
 };
 
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers/notify">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers/notify">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -62,4 +63,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
     return Response.json({ error: result.reason }, { status: STATUS[result.reason] ?? 409, headers: PRIVATE });
   }
   return Response.json(result, { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/readers/notify" });

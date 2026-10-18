@@ -6,6 +6,7 @@ import { kindForExtension, storeInboxFile } from "@/lib/inbox";
 import { storageFor, withStorageQuota } from "@/lib/storageQuota";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export const dynamic = "force-dynamic";
  * per file. Meeting a wall at photograph thirty-nine is the failure this
  * whole ticket is about.
  */
-export async function GET(
+export const GET = withV2Log(async function GET(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/media">,
 ) {
@@ -71,7 +72,7 @@ export async function GET(
     videoBytes: limits.videoBytes,
     itemsPerDay: limits.itemsPerDay,
   });
-}
+}, { route: "/api/helper/[user]/day/media" });
 
 /**
  * Take one photograph off a day — B851.
@@ -94,7 +95,7 @@ export async function GET(
  * controls, because "take my face off the internet" and "delete my friend's
  * only photograph of the harbour" are not the same sentence.
  */
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/media">,
 ) {
@@ -135,9 +136,9 @@ export async function DELETE(
     draft,
     preview: previewOf(user, tripId, day),
   });
-}
+}, { route: "/api/helper/[user]/day/media" });
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/day/media">,
 ) {
@@ -214,4 +215,4 @@ export async function POST(
     },
     { status: 201 },
   );
-}
+}, { route: "/api/helper/[user]/day/media" });

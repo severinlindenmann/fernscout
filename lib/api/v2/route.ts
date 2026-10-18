@@ -218,7 +218,8 @@ async function errorCodeOf(response: Response): Promise<string | null> {
   try {
     const text = (await response.clone().text()).slice(0, 8192);
     const code = (JSON.parse(text) as { error?: unknown }).error;
-    return typeof code === "string" ? code.slice(0, 60) : null;
+    // Only a code: a sentence (a studio "this is a bug" refusal) would put free text in the log and break the Logs parser.
+    return typeof code === "string" && /^[a-z0-9_.:-]{1,60}$/i.test(code) ? code : null;
   } catch {
     return null;
   }
@@ -240,7 +241,9 @@ async function journalOf(ctx: unknown): Promise<string | null> {
  * `features.logging` is on, and a throw leaves a `[req-error]` line with a
  * scrubbed stack (always) before it is rethrown unchanged (B-2952).
  * `route` is the template, never the concrete path. The logging itself never
- * throws and never reads a body or a query string.
+ * throws and never reads a body or a query string. The studio's own routes
+ * (`/api/helper/**`, `/api/web/**`, a day's photos) wear it too (B-3008), so a
+ * failed save reaches /admin Logs.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withV2Log<H extends (request: Request, ctx: any) => Response | Promise<Response>>(handler: H, opts: { route: string }): H {

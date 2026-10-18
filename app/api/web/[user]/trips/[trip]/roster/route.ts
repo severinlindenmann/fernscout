@@ -8,6 +8,7 @@ import { parseRoster, readRoster, writeRoster } from "@/lib/groupRoster";
 import { tripRef, getTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -22,14 +23,14 @@ async function gate(request: Request, user: string, trip: string): Promise<Respo
   return null;
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/roster">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/roster">) {
   const { user, trip } = await params;
   const refused = await gate(request, user, trip);
   if (refused) return refused;
   return Response.json({ ok: true, ...readRoster(user, trip) });
-}
+}, { route: "/api/web/[user]/trips/[trip]/roster" });
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/roster">) {
+export const PUT = withV2Log(async function PUT(request: Request, { params }: RouteContext<"/api/web/[user]/trips/[trip]/roster">) {
   const { user, trip } = await params;
   const refused = await gate(request, user, trip);
   if (refused) return refused;
@@ -39,4 +40,4 @@ export async function PUT(request: Request, { params }: RouteContext<"/api/web/[
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
   writeRoster(user, trip, parsed.roster);
   return Response.json({ ok: true, ...parsed.roster });
-}
+}, { route: "/api/web/[user]/trips/[trip]/roster" });

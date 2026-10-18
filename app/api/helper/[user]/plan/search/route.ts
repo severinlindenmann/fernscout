@@ -3,6 +3,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { requestLocale } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export const dynamic = "force-dynamic";
  */
 const LIMIT = { max: 30, windowMs: 60 * 1000 };
 
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/plan/search">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/plan/search">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -49,4 +50,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
 
   const results = await geocodePlace(trimmed, await requestLocale());
   return Response.json({ results: results ?? [] });
-}
+}, { route: "/api/helper/[user]/plan/search" });

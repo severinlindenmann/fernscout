@@ -17,6 +17,7 @@ import { journalDoc } from "@/lib/api/v2/schemas";
 import { isOwner } from "@/lib/contacts/session";
 import { journalV2Fields } from "@/lib/journals";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ const NOT_FOR_AGENTS = {
   message: "This is the owner's own door, from a browser. An agent edits the journal with PATCH /api/v2/{user}.",
 };
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]">) {
+export const PATCH = withV2Log(async function PATCH(request: Request, { params }: RouteContext<"/api/web/[user]">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
@@ -39,4 +40,4 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/web
 
   const stored = journalDoc.parse({ ...journalV2Fields(journal), username: user, tips: tipsActive(journal.owner.tips) });
   return applyJournalPatch(user, stored, request);
-}
+}, { route: "/api/web/[user]" });

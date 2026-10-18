@@ -2,6 +2,7 @@ import { readJsonBody } from "@/lib/api/jsonBody";
 import { getContact } from "@/lib/contacts";
 import { answerAskedGroup, setContactGroup } from "@/lib/contacts/groups";
 import { ownerOnly, PRIVATE } from "@/lib/readers/ownerDoor";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
  * Changes the label only. Their grant, channels and trip places are
  * untouched, which is why this needs no confirmation step.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers/group">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/readers/group">) {
   const { user } = await params;
   const denied = await ownerOnly(request, user);
   if (denied) return denied;
@@ -38,4 +39,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   const saved = await setContactGroup(user, contact.id, body.group as string | null);
   if (!saved) return Response.json({ error: "unknown_group" }, { status: 404, headers: PRIVATE });
   return Response.json({ ok: true }, { headers: PRIVATE });
-}
+}, { route: "/api/web/[user]/readers/group" });

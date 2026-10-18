@@ -4,6 +4,7 @@ import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { gpsMonthsHeld, purgeGpsHistory } from "@/lib/gps/api";
 import { gpsPurgeRequest } from "@/lib/api/v2/schemas/gps";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +41,14 @@ async function isOwnerOnly(username: string): Promise<boolean> {
   return (await isHelperOwner(username)) && (await isJournalOwnerCookie(username));
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/gps">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/gps">) {
   const { user } = await params;
   if (!(await isOwnerOnly(user))) return notYourJournal(request, user);
 
   return Response.json({ ok: true, monthsHeld: gpsMonthsHeld(user) }, { headers: NO_STORE });
-}
+}, { route: "/api/helper/[user]/gps" });
 
-export async function DELETE(request: Request, { params }: RouteContext<"/api/helper/[user]/gps">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/helper/[user]/gps">) {
   const { user } = await params;
   if (!(await isOwnerOnly(user))) return notYourJournal(request, user);
   if (foreignOrigin(request)) {
@@ -63,4 +64,4 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/he
   }
 
   return Response.json({ ok: true, ...purgeGpsHistory(user, parsed.data) }, { headers: NO_STORE });
-}
+}, { route: "/api/helper/[user]/gps" });

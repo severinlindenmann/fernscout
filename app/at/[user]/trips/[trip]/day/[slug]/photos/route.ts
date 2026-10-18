@@ -5,6 +5,7 @@ import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { IMAGE_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +71,7 @@ async function guard(
   return { ok: true, ref, slug };
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/at/[user]/trips/[trip]/day/[slug]/photos">,
 ) {
@@ -133,9 +134,9 @@ export async function POST(
     return Response.json({ error: attached.error }, { status: 400 });
 
   return Response.json({ ok: true, added: stored.items.length });
-}
+}, { route: "/at/[user]/trips/[trip]/day/[slug]/photos" });
 
-export async function DELETE(
+export const DELETE = withV2Log(async function DELETE(
   request: Request,
   { params }: RouteContext<"/at/[user]/trips/[trip]/day/[slug]/photos">,
 ) {
@@ -164,4 +165,4 @@ export async function DELETE(
     ok: true,
     removed: result.removed.map((item) => item.src),
   });
-}
+}, { route: "/at/[user]/trips/[trip]/day/[slug]/photos" });

@@ -1,6 +1,7 @@
 import { addSelfContact } from "@/lib/contacts";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
  * Owner only, cookie only, outside `/api/v1` — the same door as every other
  * helper write.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/contacts/add-me">,
 ) {
@@ -34,4 +35,4 @@ export async function POST(
 
   wrote(user, "add_contact", { id: result.contact.id, status: result.contact.status });
   return Response.json({ ok: true, contact: { id: result.contact.id, status: result.contact.status } });
-}
+}, { route: "/api/helper/[user]/contacts/add-me" });

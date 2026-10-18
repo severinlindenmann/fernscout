@@ -2,6 +2,7 @@ import { applyVisitedPhotoDelete, applyVisitedPhotoPut } from "@/lib/api/v2/visi
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,12 @@ async function gate(request: Request, user: string): Promise<Response | null> {
   return null;
 }
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/web/[user]/visited/[code]/photo">) {
+export const PUT = withV2Log(async function PUT(request: Request, { params }: RouteContext<"/api/web/[user]/visited/[code]/photo">) {
   const { user, code } = await params;
   return (await gate(request, user)) ?? applyVisitedPhotoPut(user, code, request);
-}
+}, { route: "/api/web/[user]/visited/[code]/photo" });
 
-export async function DELETE(request: Request, { params }: RouteContext<"/api/web/[user]/visited/[code]/photo">) {
+export const DELETE = withV2Log(async function DELETE(request: Request, { params }: RouteContext<"/api/web/[user]/visited/[code]/photo">) {
   const { user, code } = await params;
   return (await gate(request, user)) ?? applyVisitedPhotoDelete(user, code);
-}
+}, { route: "/api/web/[user]/visited/[code]/photo" });

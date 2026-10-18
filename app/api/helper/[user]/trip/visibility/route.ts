@@ -5,6 +5,7 @@ import { patchTripVisibility } from "@/lib/api/tripVisibility";
 import { getTrip, tripRef } from "@/lib/trips";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/trip/visibility">,
 ) {
@@ -79,4 +80,4 @@ export async function PATCH(
     listed: result.listed,
     teaser: result.teaser,
   });
-}
+}, { route: "/api/helper/[user]/trip/visibility" });

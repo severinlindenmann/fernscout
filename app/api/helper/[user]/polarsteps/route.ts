@@ -1,6 +1,7 @@
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { importPolarsteps, isPolarstepsRefusal } from "@/lib/polarsteps/api";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
  * the export ZIP (`lib/zip/readZip.ts`); `dryRun` previews without writing
  * anything, same contract as every other import door here.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/polarsteps">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/polarsteps">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -38,4 +39,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     return Response.json({ error: result.refusal, message: result.message, problems: result.problems }, { status: 400 });
   }
   return Response.json({ ok: true, ...result });
-}
+}, { route: "/api/helper/[user]/polarsteps" });

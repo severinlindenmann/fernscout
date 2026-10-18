@@ -2,6 +2,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { isJournalOwnerCookie } from "@/lib/contacts/session";
 import { isEnabled } from "@/lib/capabilities";
 import { travelForPartOfDay } from "@/lib/gps/api";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ async function isOwnerOnly(username: string): Promise<boolean> {
   return (await isHelperOwner(username)) && (await isJournalOwnerCookie(username));
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day/travel">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/day/travel">) {
   const { user } = await params;
   if (!(await isOwnerOnly(user))) return notYourJournal(request, user);
   if (!isEnabled("routeRecording", user)) {
@@ -47,4 +48,4 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
     return Response.json({ error: "unknown_trip" }, { status: 404, headers: NO_STORE });
   }
   return Response.json({ ok: true, travel }, { headers: NO_STORE });
-}
+}, { route: "/api/helper/[user]/day/travel" });

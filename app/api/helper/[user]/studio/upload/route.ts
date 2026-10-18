@@ -6,10 +6,11 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { MAX_FILES_PER_REQUEST, stageAndAppend } from "@/lib/staging/stageFiles";
 import { readManifest, writeManifest } from "@/lib/staging/manifest";
 import { JOURNAL_STAGING_MAX_BYTES } from "@/lib/validate/media";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/upload">,
 ) {
@@ -67,4 +68,4 @@ export async function POST(
     stagedBytes,
     stagedLimitBytes: JOURNAL_STAGING_MAX_BYTES,
   });
-}
+}, { route: "/api/helper/[user]/studio/upload" });

@@ -24,6 +24,7 @@ import { parsePhotoVisibility, type PhotoVisibility } from "@/lib/photos";
 import { ALL_TRACKED, CARD_PREFILL_TRACKS, declinesIn, missingFrom, UNKNOWN, type Track } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ function trackAnswer(readiness: DayReadiness, track: Track): false | typeof UNKN
  * itself removed — its job was staging, and everything it carried now has
  * somewhere else to be.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/assemble-day">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/assemble-day">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) return notYourJournal(request, user);
 
@@ -322,7 +323,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     { ok: true, trip: tripId, slug: written.slug, attached: attached.attached },
     { status: 201 },
   );
-}
+}, { route: "/api/helper/[user]/assemble-day" });
 
 /** Record an answer to whatever the date folder was asked about, and stop
  *  there — the caller presses again, with nothing but `trip`/`date`, once

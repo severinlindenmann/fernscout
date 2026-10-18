@@ -16,6 +16,7 @@ import { getUser } from "@/lib/users";
 import { readTripFile } from "@/lib/api/v2/store";
 import { PLAN_READERS } from "@/lib/tripWrite";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ const NOT_FOR_AGENTS = {
     "PATCH /api/v2/{user}/trips/{trip}.",
 };
 
-export async function PATCH(
+export const PATCH = withV2Log(async function PATCH(
   request: Request,
   { params }: RouteContext<"/api/web/[user]/trips/[trip]/plan-readers">,
 ) {
@@ -65,4 +66,4 @@ export async function PATCH(
     body: JSON.stringify({ plan: { ...stored.plan, readers: body.readers } }),
   });
   return applyTripPatch(user, trip, journal, merged, "sections");
-}
+}, { route: "/api/web/[user]/trips/[trip]/plan-readers" });

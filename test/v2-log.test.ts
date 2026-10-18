@@ -42,6 +42,12 @@ describe("withV2Log", () => {
     expect(logs[0]).toMatch(/^\[req\] - GET \S+ 200 \d+ms journal=- err=-$/);
   });
 
+  it("logs err=- for a sentence-shaped error, never the sentence (B-3008)", async () => {
+    const h = withV2Log(async () => Response.json({ error: "The day was written but a@b.co, so nothing was kept" }, { status: 500 }), { route: ROUTE });
+    await h(req(), ctx);
+    expect(logs[0]).toMatch(/^\[req\] abcd1234 GET \S+ 500 \d+ms journal=alice err=-$/);
+  });
+
   it("logs [req-error] with a scrubbed stack and rethrows", async () => {
     const boom = new Error("failed for me@example.com with Bearer abc.def.ghi");
     const h = withV2Log(

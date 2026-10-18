@@ -6,6 +6,7 @@ import { getTrip, tripRef } from "@/lib/trips";
 import { validateEntryEdit } from "@/lib/validate/entry";
 import { wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
 }
 
-export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day/costs">) {
+export const POST = withV2Log(async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day/costs">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) return notYourJournal(request, user);
 
@@ -101,4 +102,4 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const now = getEntryBySlug(ref, target.slug, AS_AUTHOR);
   wrote(user, "add_cost", { trip: tripId, slug: target.slug, date });
   return Response.json({ ok: true, trip: tripId, slug: target.slug, date, costs: now?.costs ?? costs });
-}
+}, { route: "/api/helper/[user]/day/costs" });

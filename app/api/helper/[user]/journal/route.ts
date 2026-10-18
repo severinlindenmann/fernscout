@@ -2,6 +2,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
 import { setJournalProfile } from "@/lib/journals";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
  * contract, for the reason `app/api/helper/[user]/day/route.ts` sets out at
  * length.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/journal">,
 ) {
@@ -50,4 +51,4 @@ export async function POST(
 
   wrote(user, "journal_settings", { changed: result.changed });
   return Response.json({ ok: true, journal: result.journal, changed: result.changed });
-}
+}, { route: "/api/helper/[user]/journal" });

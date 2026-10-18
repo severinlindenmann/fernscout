@@ -2,6 +2,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { findInboxFile, removeInboxFile } from "@/lib/inbox";
 import { refused, wrote } from "@/lib/helper/thread";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,7 @@ export const dynamic = "force-dynamic";
  * failing the whole request, and what actually went is what the response
  * names.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/inbox/discard">,
 ) {
@@ -61,4 +62,4 @@ export async function POST(
   return removed.length === 1
     ? Response.json({ ok: true, id: removed[0].id, filename: removed[0].filename })
     : Response.json({ ok: true, removed });
-}
+}, { route: "/api/helper/[user]/inbox/discard" });

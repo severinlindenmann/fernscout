@@ -7,6 +7,7 @@ import { patchCosts, type CostsEditInput } from "@/lib/api/costs";
 import { validateCostsPatch } from "@/lib/validate/costs";
 import { normalizeCurrency } from "@/lib/currency";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ function num(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/trip/budget">,
 ) {
@@ -116,4 +117,4 @@ export async function POST(
   const changed = Object.keys(patch);
   wrote(user, "set_budget", { trip: tripId, changed });
   return Response.json({ ok: true, trip: tripId, changed });
-}
+}, { route: "/api/helper/[user]/trip/budget" });

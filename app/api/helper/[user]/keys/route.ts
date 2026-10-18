@@ -4,6 +4,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
 import { getTrip, tripRef } from "@/lib/trips";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ function scopedTripId(scope: string | null): string | null {
  * chosen for a URL. `null` for a whole-journal key, and for a trip since
  * deleted.
  */
-export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/keys">) {
+export const GET = withV2Log(async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/keys">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {
     return notYourJournal(request, user);
@@ -77,8 +78,8 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
     };
   });
   return Response.json({ keys });
-}
-export async function POST(
+}, { route: "/api/helper/[user]/keys" });
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/keys">,
 ) {
@@ -113,4 +114,4 @@ export async function POST(
   await revokeSession(id);
   wrote(user, "revoke_key", { kind: row.kind });
   return Response.json({ ok: true, revoked: id });
-}
+}, { route: "/api/helper/[user]/keys" });

@@ -4,6 +4,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { extendOnTouch } from "@/lib/staging/expiry";
 import { DATE_RE, readManifest, writeManifest, type DayRow } from "@/lib/staging/manifest";
 import { readJsonBody } from "@/lib/api/jsonBody";
+import { withV2Log } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
  * back, but nothing is appended to `words` — an empty field, never a blank
  * line standing in for an answer nobody gave.
  */
-export async function POST(
+export const POST = withV2Log(async function POST(
   request: Request,
   { params }: RouteContext<"/api/helper/[user]/studio/day">,
 ) {
@@ -91,4 +92,4 @@ export async function POST(
 
   writeManifest(user, current);
   return Response.json({ day });
-}
+}, { route: "/api/helper/[user]/studio/day" });
