@@ -11,6 +11,7 @@ import LocaleSwitcher from "@/components/LocaleSwitcher";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { Logo, WIDE } from "@/components/landing/kit";
 import { journalPath } from "@/lib/journalPath";
+import { useNativeShell } from "@/components/nativeShell";
 
 /**
  * The signed-in `/` header and the owner's phone tab bar — B2519, the
@@ -70,6 +71,9 @@ export default function SignedInHeader({
   // B2531: the same header on every page outside the journal; Home is only
   // the current door on `/`.
   const doors = ownerDoors(journals, prints, t, usePathname() === "/");
+  // B-3013: in the iPhone app the header is the mark and the account chip;
+  // theme and language are on /me.
+  const nativeShell = useNativeShell();
   return (
     <>
       <header className="border-b border-line-quiet">
@@ -104,8 +108,12 @@ export default function SignedInHeader({
                 <Wrench aria-hidden className="h-[18px] w-[18px]" strokeWidth={2} />
               </Link>
             )}
-            <ThemeSwitcher subtle />
-            <LocaleSwitcher locales={locales} subtle />
+            {!nativeShell && (
+              <>
+                <ThemeSwitcher subtle />
+                <LocaleSwitcher locales={locales} subtle />
+              </>
+            )}
             <AccountChip email={email} />
           </div>
         </div>

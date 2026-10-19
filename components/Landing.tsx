@@ -13,6 +13,7 @@ import SignedInHeader from "@/components/home/SignedInHeader";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import ServerChoice from "@/components/ServerChoice";
 import { useI18n } from "@/components/LocaleProvider";
+import { useNativeShell } from "@/components/nativeShell";
 import { SAVED_COPY_AFTER_MS, SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
 
 export type { PublicJournal };
@@ -132,6 +133,8 @@ export default function Landing({
   printPrices?: { label: string; price: string }[];
 }) {
   const { t } = useI18n();
+  // B-3013: the iPhone app's signed-in home is the person's, not the website's.
+  const nativeShell = useNativeShell();
   const [phase, setPhase] = useState<Phase>("unknown");
   const [home, setHome] = useState<HomePayload | null>(null);
   // B-2975: set only when the answer is a saved copy from the offline worker.
@@ -251,6 +254,7 @@ export default function Landing({
             journals={home.journals}
             photobookEnabled={photobookEnabled}
             signupEnabled={signupEnabled}
+            app={nativeShell}
           />
           {/*
             B797: the write call to action, its paragraph, the agent
@@ -264,7 +268,7 @@ export default function Landing({
             stays, for exactly the reader B751 wrote it for: one who owns no
             journal yet.
           */}
-          {!helperEnabled && !home.journals.some((journal) => journal.role === "owner") && (
+          {!nativeShell && !helperEnabled && !home.journals.some((journal) => journal.role === "owner") && (
             <div className="mt-12 border-t border-line-quiet pt-8">
               <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
             </div>
@@ -291,12 +295,22 @@ export default function Landing({
           {/* B2532: the last section of the page, just above the footer —
               this instance's own journals matter least to somebody who
               already has one of their own. */}
-          {publicList}
+          {!nativeShell && publicList}
+          {nativeShell && legal && (
+            <p className="mt-8 text-center">
+              <Link href="/legal" className="inline-block py-2 text-sm text-ink-secondary underline underline-offset-4">
+                {t("landing.legal")}
+              </Link>
+            </p>
+          )}
           {/* Inside the iPhone app only: which server it is talking to. */}
           <ServerChoice signedIn />
         </main>
-        {/* B2531: the one footer, instead of the old two-column colophon. */}
-        <Footer siteName={siteName} orgs={orgs} repository={repository} credit={credit} legal={legal} />
+        {/* B2531: the one footer, instead of the old two-column colophon. The
+            app leaves the website's footer to the website — B-3013. */}
+        {!nativeShell && (
+          <Footer siteName={siteName} orgs={orgs} repository={repository} credit={credit} legal={legal} />
+        )}
       </div>
     );
   }
