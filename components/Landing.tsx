@@ -12,6 +12,8 @@ import SignedInHome, { HomeSkeleton } from "@/components/home/SignedInHome";
 import SignedInHeader from "@/components/home/SignedInHeader";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import ServerChoice from "@/components/ServerChoice";
+import AppStart from "@/components/landing/AppStart";
+import { useNativeShell } from "@/components/nativeShell";
 import { useI18n } from "@/components/LocaleProvider";
 import { SAVED_COPY_AFTER_MS, SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
 
@@ -162,6 +164,7 @@ export default function Landing({
     setExpected(window.localStorage.getItem(SEEN_KEY) === "1");
   }, []);
   const [signingIn, setSigningIn] = useState(false);
+  const nativeShell = useNativeShell();
 
   /**
    * `?start=1` opens the sign-in card without a click — B1905.
@@ -314,6 +317,32 @@ export default function Landing({
     );
   }
 
+  const signInForm = (
+    <IdentitySignIn
+      codeMinutes={codeMinutes}
+      // The cookie is set by the server and this page renders from it, so a
+      // reload rather than a state flip.
+      onDone={() => window.location.reload()}
+    />
+  );
+
+  // B-3012: inside the iPhone app, one screen instead of the website's pitch.
+  if (nativeShell) {
+    return (
+      <AppStart
+        siteName={siteName}
+        demo={demo}
+        inviteCta={inviteCta}
+        photobook={photobookEnabled}
+        legal={legal}
+        onSignIn={() => setSigningIn(true)}
+        signIn={signingIn ? signInForm : undefined}
+        onBack={() => setSigningIn(false)}
+        serverChoice={phase === "out" && <ServerChoice signedIn={false} />}
+      />
+    );
+  }
+
   return (
     <>
       <SignedOut
@@ -324,14 +353,7 @@ export default function Landing({
         // them to another page.
         top={
           signingIn ? (
-            <div className="mx-auto max-w-2xl px-4 py-6">
-              <IdentitySignIn
-                codeMinutes={codeMinutes}
-                // The cookie is set by the server and this page renders from
-                // it, so a reload rather than a state flip.
-                onDone={() => window.location.reload()}
-              />
-            </div>
+            <div className="mx-auto max-w-2xl px-4 py-6">{signInForm}</div>
           ) : (
             offerSignIn && <ReaderStrip onSignIn={() => setSigningIn(true)} />
           )

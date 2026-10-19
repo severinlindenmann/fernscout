@@ -1285,6 +1285,7 @@ export type TranslationKey =
   | "landing.agenticCta"
   | "landing.agenticKicker"
   | "landing.agenticTitle"
+  | "landing.app.signInNote"
   | "landing.copied"
   | "landing.copyInstruction"
   | "landing.demoFrom"

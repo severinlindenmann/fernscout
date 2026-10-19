@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Menu } from "lucide-react";
+import { ChevronLeft, Menu } from "lucide-react";
 import Link from "@/components/LanguageLink";
 import SignedInHeader from "@/components/home/SignedInHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import { useNativeShell } from "@/components/nativeShell";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { flagFor } from "@/lib/flags";
 import { SEEN_KEY, type HomePayload } from "@/lib/homeProbe";
@@ -306,6 +307,8 @@ export function SiteFrame({
   ...props
 }: FrameProps & Doors & { slim?: boolean; audience?: Audience; children: ReactNode }) {
   const { nav, cta } = useDoors(props, true);
+  const { t } = useI18n();
+  const nativeShell = useNativeShell();
   // undefined: not known yet; null: nobody signed in.
   const [home, setHome] = useState<HomePayload | null | undefined>(undefined);
   // A browser that was signed in last time waits for the answer with the
@@ -338,7 +341,21 @@ export function SiteFrame({
   }, []);
 
   const owner = !slim && Boolean(home?.journals.some((j) => j.role === "owner"));
-  const header = slim ? (
+  // B-3012: a slim page inside the iPhone app is a step, not a website: the
+  // way back and nothing else, and no footer under it.
+  const bare = slim && nativeShell;
+  const header = bare ? (
+    <header className="px-4 pt-3">
+      <Link
+        href="/"
+        aria-label={t("landing.navHome")}
+        className="grid size-11 place-items-center rounded-full border border-line-quiet text-ink-strong
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      >
+        <ChevronLeft aria-hidden className="size-6" />
+      </Link>
+    </header>
+  ) : slim ? (
     <HeaderC {...props} signedIn={Boolean(home)} />
   ) : home ? (
     <SignedInHeader
@@ -369,7 +386,7 @@ export function SiteFrame({
       <main id="main" className="flex-1">
         {children}
       </main>
-      <Footer {...props} />
+      {!bare && <Footer {...props} />}
     </div>
   );
 }
