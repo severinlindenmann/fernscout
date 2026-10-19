@@ -681,6 +681,7 @@
   "meAccount.planTitle": "Az előfizetésed",
   "meAccount.planCta": "Előfizetés kezelése",
   "meAccount.roles": "Útinaplóid ezen a szerveren",
+  "meAccount.display": "Megjelenés és nyelv",
   "meAccount.rolesBody": "A sajátjaid, azok, amelyekben útitárs voltál, és azok, amelyeket valaki megosztott veled.",
   "meAccount.title": "Fiókod",
   "photobook.blank.binding": "A(z) {page}. oldal üres marad: a kötéshez páros oldalszám kell.",
@@ -1089,7 +1090,6 @@
   "landing.ledeBookApp": "Útinapló, amit a családod a böngészőben olvas: nincs jelszó, nincs hírfolyam. Írj pár sort, tedd hozzá a fotóidat, és őrizd meg az utat könyvként.",
   "landing.readerStrip": "Valaki megosztott veled egy naplót?",
   "landing.readerStripAction": "Jelentkezz be, hogy elolvashasd",
-  "landing.app.signInNote": "Akkor is, ha valaki megosztott veled egy naplót.",
   "landing.navLabel": "Ezen az oldalon",
   "landing.navHow": "Hogyan működik",
   "landing.navPrints": "Nyomtatás",
@@ -4448,6 +4448,8 @@
   "home.draftLabel": "Piszkozat · csak te látod",
   "home.finishDay": "Nap befejezése",
   "home.addDay": "Új nap",
+  "home.app.current": "A mostani utad",
+  "home.app.continueDraft": "Piszkozat folytatása",
   "home.openStudio": "Stúdió megnyitása",
   "home.yourTrips": "Utazásaid",
   "home.newTrip": "Új utazás",
@@ -5271,5 +5273,6 @@
   "meAccount.changePhone": "Mobilszám módosítása",
   "meAccount.changePhoneTitle": "A mobilszámod módosítása",
   "meAccount.changePhoneBody": "Kódot küldünk az új számra. Ha beírod, minden útinaplóban felváltja a régit, és a régi számmal történt bejelentkezések megszűnnek.",
-  "meAccount.changePhoneByEmail": "A számod módosításához jelentkezz be az e-mail-címeddel."
+  "meAccount.changePhoneByEmail": "A számod módosításához jelentkezz be az e-mail-címeddel.",
+  "landing.app.signInNote": "Akkor is, ha valaki megosztott veled egy naplót."
 }

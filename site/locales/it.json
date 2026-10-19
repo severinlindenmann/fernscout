@@ -645,6 +645,7 @@
   "meAccount.planTitle": "Il tuo piano",
   "meAccount.planCta": "Gestisci il tuo piano",
   "meAccount.roles": "I tuoi diari su questo server",
+  "meAccount.display": "Aspetto e lingua",
   "meAccount.rolesBody": "Il tuo, quelli in cui hai viaggiato, e quelli che qualcuno ha condiviso con te.",
   "meAccount.title": "Il tuo account",
   "studio.day.voiceNote.banner.heading": "Trascritto dal tuo memo vocale — controllalo",
@@ -1327,7 +1328,6 @@
   "landing.ledeBookApp": "Un diario di viaggio che la tua famiglia legge nel browser: niente password, niente feed. Scrivi qualche riga, aggiungi le tue foto, e conserva il viaggio come un libro.",
   "landing.readerStrip": "Qualcuno ha condiviso un diario con te?",
   "landing.readerStripAction": "Accedi per leggerlo",
-  "landing.app.signInNote": "Anche se qualcuno ha condiviso un diario con te.",
   "landing.navLabel": "In questa pagina",
   "landing.navHow": "Come funziona",
   "landing.navPrints": "Stampa",
@@ -4447,6 +4447,8 @@
   "home.draftLabel": "Bozza · la vedi solo tu",
   "home.finishDay": "Finisci questo giorno",
   "home.addDay": "Aggiungi un giorno",
+  "home.app.current": "Il tuo viaggio in corso",
+  "home.app.continueDraft": "Continua la bozza",
   "home.openStudio": "Apri lo studio",
   "home.yourTrips": "I tuoi viaggi",
   "home.newTrip": "Nuovo viaggio",
@@ -5274,5 +5276,6 @@
   "meAccount.changePhone": "Cambia numero di cellulare",
   "meAccount.changePhoneTitle": "Cambia il tuo numero di cellulare",
   "meAccount.changePhoneBody": "Mandiamo un codice al nuovo numero. Una volta inserito, sostituisce il vecchio in ogni diario, e gli accessi con il vecchio numero terminano.",
-  "meAccount.changePhoneByEmail": "Per cambiare il numero, accedi con la tua e-mail."
+  "meAccount.changePhoneByEmail": "Per cambiare il numero, accedi con la tua e-mail.",
+  "landing.app.signInNote": "Anche se qualcuno ha condiviso un diario con te."
 }

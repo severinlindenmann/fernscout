@@ -645,6 +645,7 @@
   "meAccount.planTitle": "Your plan",
   "meAccount.planCta": "Manage your plan",
   "meAccount.roles": "Your journals on this server",
+  "meAccount.display": "Look and language",
   "meAccount.rolesBody": "Your own, the ones you travelled in, and the ones somebody shared with you.",
   "meAccount.title": "Your account",
   "studio.day.voiceNote.banner.heading": "Transcribed from your voice note — check it",
@@ -1327,7 +1328,6 @@
   "landing.ledeBookApp": "A travel journal your family reads in the browser: no password, no feed. Write a few lines, add your photos, and keep the trip as a book.",
   "landing.readerStrip": "Someone shared a journal with you?",
   "landing.readerStripAction": "Sign in to read it",
-  "landing.app.signInNote": "Also if someone shared a journal with you.",
   "landing.navLabel": "On this page",
   "landing.navHow": "How it works",
   "landing.navPrints": "Print",
@@ -4478,6 +4478,8 @@
   "home.draftLabel": "Draft · only you can see it",
   "home.finishDay": "Finish this day",
   "home.addDay": "Add a day",
+  "home.app.current": "Your current trip",
+  "home.app.continueDraft": "Continue draft",
   "home.openStudio": "Open the studio",
   "home.yourTrips": "Your trips",
   "home.newTrip": "New trip",
@@ -5265,5 +5267,6 @@
   "meAccount.changePhone": "Change mobile number",
   "meAccount.changePhoneTitle": "Change your mobile number",
   "meAccount.changePhoneBody": "We send a code to the new number. Once you type it in, it replaces the old one in every journal, and sign-ins with the old number end.",
-  "meAccount.changePhoneByEmail": "To change your number, sign in with your email."
+  "meAccount.changePhoneByEmail": "To change your number, sign in with your email.",
+  "landing.app.signInNote": "Also if someone shared a journal with you."
 }

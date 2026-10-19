@@ -6,6 +6,8 @@ import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import KeepCard from "@/components/KeepCard";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import SignOut from "@/components/SignOut";
 import { TITLE_H1 } from "@/components/landing/kit";
 import { PILL_PRIMARY } from "@/components/landing/styles";
@@ -472,6 +474,17 @@ export default function AccountPage({
                 )
               }
             />
+
+            {/* B-3013: the iPhone app's header leaves these out, so they live here. */}
+            <section aria-labelledby="account-display" className="mt-10">
+              <h2 id="account-display" className="font-display text-xl font-semibold text-ink-strong">
+                {t("meAccount.display")}
+              </h2>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <ThemeSwitcher />
+                <LocaleSwitcher />
+              </div>
+            </section>
 
             <SignOut owner={owned?.username} phone={subjectPhone(home.email) !== null} />
             <SignOutEverywhere devices={home.devices.length} />

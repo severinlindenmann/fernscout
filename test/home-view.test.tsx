@@ -53,7 +53,7 @@ const TODAY = "2026-10-10";
 
 function home(
   journals: HomeJournal[],
-  opts: { photobook?: boolean; signup?: boolean; savedAt?: number | null } = {},
+  opts: { photobook?: boolean; signup?: boolean; savedAt?: number | null; app?: boolean } = {},
 ) {
   return render(
     <SignedInHome
@@ -62,6 +62,7 @@ function home(
       signupEnabled={opts.signup}
       today={TODAY}
       savedAt={opts.savedAt}
+      app={opts.app}
     />,
   );
 }
@@ -307,6 +308,62 @@ describe("the signed-in home", () => {
    */
   test("nobody with no journals is left staring at an empty heading", () => {
     expect(home([])).toContain("Nothing yet");
+  });
+});
+
+/**
+ * B-3013 — inside the iPhone app the home leads with one next step: the running
+ * trip this address writes in, not the newest draft, and nothing twice.
+ */
+describe("the signed-in home in the iPhone app", () => {
+  const en = dictionaryFor("en");
+  const upcoming = { status: "upcoming" as const, start: "2027-03-28", end: "2027-05-09" };
+  const japan = trip({ id: "japan", title: "Japan, end to end", href: "/@ana/trips/japan", ...upcoming,
+    draft: { slug: "hakodate", title: "Hakodate, before Sapporo", date: "2027-03-30", href: "/@ana/day/hakodate" } });
+  const across = trip({ id: "across", title: "Across and back", href: "/@ana/trips/across", ...running });
+  const times = (html: string, text: string) => html.split(text).length - 1;
+
+  test("the running trip leads, the draft on another trip is a quiet row, and Japan is named once", () => {
+    const html = home([journal({ trips: [japan, across] })], { app: true });
+    expect(html.indexOf("Across and back")).toBeLessThan(html.indexOf("Hakodate, before Sapporo"));
+    expect(html).toContain(en["home.app.current"]);
+    expect(html).toContain("/@ana/studio/day/new?trip=across");
+    expect(html).toContain("/@ana/studio/day/edit?slug=hakodate");
+    expect(times(html, "Japan, end to end")).toBe(1);
+    expect(html).not.toContain(en["home.road.byDates"]);
+    expect(times(html, en["home.addDay"])).toBe(1);
+    expect(html).not.toContain(en["home.finishDay"]);
+  });
+
+  test("with nothing running, the draft is the one next step", () => {
+    const html = home([journal({ trips: [japan, trip(past)] })], { app: true });
+    expect(html).toContain(en["home.app.continueDraft"]);
+    expect(html).not.toContain(en["home.road.nobody"]);
+    expect(times(html, en["home.app.continueDraft"])).toBe(1);
+    expect(html).not.toContain(en["home.addDay"]);
+  });
+
+  test("with nothing to continue, a new trip is the next step and the studio is the Write tab", () => {
+    const html = home([journal({ trips: [trip(past)] })], { app: true });
+    expect(times(html, en["home.newTrip"])).toBe(1);
+    expect(html).toContain("/@ana/studio/trip/new");
+    expect(html).not.toContain(en["home.openStudio"]);
+  });
+
+  test("a traveller on a friend's trip still only reads", () => {
+    const html = home([journal({ role: "traveller", trips: [trip({ ...running, through: "traveller" })] })], { app: true });
+    expect(html).not.toContain("/studio/");
+  });
+
+  test("the book is a row, and the website's home is unchanged", () => {
+    const journals = [journal({ trips: [japan, across, trip({ ...past, days: 3 })] })];
+    const app = home(journals, { app: true, photobook: true });
+    expect(app).toContain(en["home.paper.action"]);
+    expect(app).not.toContain(en["home.paper.kicker"]);
+    const web = home(journals, { photobook: true });
+    expect(web).toContain(en["home.paper.kicker"]);
+    expect(web).toContain(en["home.road.byDates"]);
+    expect(web).not.toContain(en["home.app.current"]);
   });
 });
 

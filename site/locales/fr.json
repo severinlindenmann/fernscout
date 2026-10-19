@@ -645,6 +645,7 @@
   "meAccount.planTitle": "Ton forfait",
   "meAccount.planCta": "Gérer ton forfait",
   "meAccount.roles": "Tes journaux sur ce serveur",
+  "meAccount.display": "Affichage et langue",
   "meAccount.rolesBody": "Le tien, ceux où tu as voyagé, et ceux que quelqu’un a partagés avec toi.",
   "meAccount.title": "Ton compte",
   "studio.day.voiceNote.banner.heading": "Transcrit depuis ton mémo vocal — vérifie-le",
@@ -1327,7 +1328,6 @@
   "landing.ledeBookApp": "Un journal de voyage que ta famille lit dans le navigateur : pas de mot de passe, pas de fil d’actualité. Écris quelques lignes, ajoute tes photos, et garde le voyage comme un livre.",
   "landing.readerStrip": "Quelqu’un a partagé un journal avec toi ?",
   "landing.readerStripAction": "Connecte-toi pour le lire",
-  "landing.app.signInNote": "Aussi si quelqu’un a partagé un journal avec toi.",
   "landing.navLabel": "Sur cette page",
   "landing.navHow": "Comment ça marche",
   "landing.navPrints": "Imprimer",
@@ -4447,6 +4447,8 @@
   "home.draftLabel": "Brouillon · visible par vous seul",
   "home.finishDay": "Terminer ce jour",
   "home.addDay": "Ajouter un jour",
+  "home.app.current": "Ton voyage en cours",
+  "home.app.continueDraft": "Continuer le brouillon",
   "home.openStudio": "Ouvrir le studio",
   "home.yourTrips": "Vos voyages",
   "home.newTrip": "Nouveau voyage",
@@ -5274,5 +5276,6 @@
   "meAccount.changePhone": "Changer de numéro de mobile",
   "meAccount.changePhoneTitle": "Changer ton numéro de mobile",
   "meAccount.changePhoneBody": "On envoie un code au nouveau numéro. Une fois saisi, il remplace l’ancien dans tous les journaux, et les connexions avec l’ancien numéro prennent fin.",
-  "meAccount.changePhoneByEmail": "Pour changer ton numéro, connecte-toi avec ton e-mail."
+  "meAccount.changePhoneByEmail": "Pour changer ton numéro, connecte-toi avec ton e-mail.",
+  "landing.app.signInNote": "Aussi si quelqu’un a partagé un journal avec toi."
 }

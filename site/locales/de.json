@@ -645,6 +645,7 @@
   "meAccount.planTitle": "Dein Abo",
   "meAccount.planCta": "Abo verwalten",
   "meAccount.roles": "Deine Reisetagebücher auf diesem Server",
+  "meAccount.display": "Darstellung und Sprache",
   "meAccount.rolesBody": "Deine eigenen, die, in denen du mitgereist bist, und die, die jemand mit dir geteilt hat.",
   "meAccount.title": "Dein Konto",
   "studio.day.voiceNote.banner.heading": "Aus deiner Sprachnotiz übertragen — bitte prüfen",
@@ -1327,7 +1328,6 @@
   "landing.ledeBookApp": "Ein Reisetagebuch, das deine Familie im Browser liest: kein Passwort, kein Feed. Schreib ein paar Zeilen, füg deine Fotos hinzu und behalte die Reise als Buch.",
   "landing.readerStrip": "Hat dir jemand ein Reisetagebuch geteilt?",
   "landing.readerStripAction": "Melde dich an, um es zu lesen",
-  "landing.app.signInNote": "Auch wenn dir jemand ein Reisetagebuch geteilt hat.",
   "landing.navLabel": "Auf dieser Seite",
   "landing.navHow": "So funktioniert's",
   "landing.navPrints": "Drucken",
@@ -4447,6 +4447,8 @@
   "home.draftLabel": "Entwurf · nur du siehst ihn",
   "home.finishDay": "Diesen Tag fertig schreiben",
   "home.addDay": "Tag hinzufügen",
+  "home.app.current": "Deine laufende Reise",
+  "home.app.continueDraft": "Entwurf weiterschreiben",
   "home.openStudio": "Studio öffnen",
   "home.yourTrips": "Deine Reisen",
   "home.newTrip": "Neue Reise",
@@ -5270,5 +5272,6 @@
   "meAccount.changePhone": "Handynummer ändern",
   "meAccount.changePhoneTitle": "Deine Handynummer ändern",
   "meAccount.changePhoneBody": "Wir schicken einen Code an die neue Nummer. Sobald du ihn eingibst, ersetzt sie die alte in allen Reisetagebüchern, und Anmeldungen mit der alten Nummer enden.",
-  "meAccount.changePhoneByEmail": "Um deine Nummer zu ändern, melde dich mit deiner E-Mail an."
+  "meAccount.changePhoneByEmail": "Um deine Nummer zu ändern, melde dich mit deiner E-Mail an.",
+  "landing.app.signInNote": "Auch wenn dir jemand ein Reisetagebuch geteilt hat."
 }

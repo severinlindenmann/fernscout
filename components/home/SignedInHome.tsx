@@ -127,6 +127,30 @@ function ReadyForPaper({ item }: { item: Owned }) {
   );
 }
 
+/** The app's book offer: one row rather than the navy block — B-3013. */
+function PaperRow({ item }: { item: Owned }) {
+  const { t } = useI18n();
+  const { journal, trip } = item;
+  return (
+    <Link
+      href={`${journalPath(journal.username)}/trips/${encodeURIComponent(trip.id)}/photobook`}
+      className={`${CARD} flex min-h-16 items-center gap-3 p-2 pr-4
+                  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500`}
+    >
+      <Cover src={trip.cover} sizes="48px" className="size-12 shrink-0 rounded-xl" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="font-display text-base font-semibold break-words text-ink-strong">
+          {t("home.paper.title", { trip: trip.title })}
+        </span>
+        <span className="text-sm text-ink-body">{t("home.paper.action")}</span>
+      </span>
+      <span aria-hidden className="text-ink-secondary">
+        ›
+      </span>
+    </Link>
+  );
+}
+
 function StartYourOwn() {
   const { t } = useI18n();
   const [dismissed, setDismissed] = useState(() => {
@@ -253,6 +277,92 @@ function MineStrip({ item, isRunning }: { item: BandTrip; isRunning: boolean }) 
   );
 }
 
+/** Whether this address writes in the trip — `MineStrip`'s rule: a traveller
+ * reads. */
+function writes({ journal, trip }: BandTrip): boolean {
+  return journal.role === "owner" || trip.through === "owner";
+}
+
+/**
+ * The iPhone app's one next step — B-3013. The owner's running trip, or, with
+ * nothing running, a trip holding a draft. Its dates are shown rather than
+ * "you're travelling": running is a fact about the dates (`lib/homeBands.ts`).
+ */
+function LeadCard({ item, isRunning }: { item: BandTrip; isRunning: boolean }) {
+  const { t } = useI18n();
+  const { range } = useDates();
+  const { journal, trip } = item;
+  const studio = `${journalPath(journal.username)}/studio`;
+  const dates = range(trip.start, trip.end);
+  return (
+    <section aria-labelledby="home-lead" className="overflow-hidden rounded-3xl border-2 border-yellow-400 bg-surface-raised">
+      {isRunning && trip.cover && <Cover src={trip.cover} sizes="100vw" className="h-36" />}
+      <div className="flex flex-col gap-2 p-5">
+        <Kicker>
+          {isRunning ? t("home.app.current") : t("home.draftLabel")}
+          {dates && ` · ${dates}`}
+        </Kicker>
+        <h1 id="home-lead" className="font-display text-2xl font-semibold leading-tight break-words text-ink-strong">
+          {isRunning || !trip.draft ? trip.title : trip.draft.title}
+        </h1>
+        {isRunning && trip.draft && (
+          <p className="break-words text-sm text-ink-body">
+            {t("home.draftLabel")}: {trip.draft.title}
+          </p>
+        )}
+        {!isRunning && trip.draft && <p className="break-words text-sm text-ink-body">{trip.title}</p>}
+        <div className="mt-2 flex flex-col gap-3">
+          {trip.draft ? (
+            <Link href={`${studio}/day/edit?slug=${encodeURIComponent(trip.draft.slug)}`} className={BUTTON}>
+              {t("home.app.continueDraft")}
+            </Link>
+          ) : (
+            <Link href={`${studio}/day/new?trip=${encodeURIComponent(trip.id)}`} className={BUTTON}>
+              {t("home.addDay")}
+            </Link>
+          )}
+          <span className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+            {isRunning && trip.draft && (
+              <Link href={`${studio}/day/new?trip=${encodeURIComponent(trip.id)}`} className={`text-sm ${LINK}`}>
+                {t("home.addDay")}
+              </Link>
+            )}
+            <Link href={trip.href} className={`text-sm ${LINK}`}>
+              {t("home.allDays")}
+            </Link>
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** A draft on a trip that is not the lead — a quiet row, not a second button. */
+function DraftRow({ item }: { item: BandTrip }) {
+  const { t } = useI18n();
+  const { journal, trip } = item;
+  return (
+    <li className="min-w-0">
+      <Link
+        href={`${journalPath(journal.username)}/studio/day/edit?slug=${encodeURIComponent(trip.draft!.slug)}`}
+        className={`${CARD} flex min-h-16 items-center gap-3 border-dashed p-2 pl-4 pr-4
+                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500`}
+      >
+        <span className="flex min-w-0 flex-1 flex-col">
+          <Kicker>{t("home.draftLabel")}</Kicker>
+          <span title={trip.draft!.title} className="truncate font-display text-base font-semibold text-ink-strong">
+            {trip.draft!.title}
+          </span>
+          <span className="truncate text-sm text-ink-body">{trip.title}</span>
+        </span>
+        <span aria-hidden className="text-ink-secondary">
+          ›
+        </span>
+      </Link>
+    </li>
+  );
+}
+
 /** A friend's running trip with a day to read — large, because it is what the
  * reader came for. */
 function RunningCard({ item }: { item: BandTrip }) {
@@ -352,6 +462,7 @@ export default function SignedInHome({
   signupEnabled = false,
   today,
   savedAt = null,
+  app = false,
 }: {
   journals: HomeJournal[];
   photobookEnabled?: boolean;
@@ -360,6 +471,8 @@ export default function SignedInHome({
   today?: string;
   /** When this answer was saved, if it came from the offline copy. */
   savedAt?: number | null;
+  /** Inside the iPhone app: lead with the one next step — B-3013. */
+  app?: boolean;
 }) {
   const { t, locale } = useI18n();
   const { day } = useDates();
@@ -378,6 +491,21 @@ export default function SignedInHome({
   const rows = bands.running.filter((i) => !cards.includes(i));
   const featured = onTheRoad ? undefined : newestDay(journals);
   const next = bands.upcoming[0];
+  // B-3013, the app only: the running trip this address writes in leads, then
+  // a trip holding a draft. Everything else of its own is a quiet row, and a
+  // trip already shown with its draft is not named again as upcoming.
+  const lead = app
+    ? (runningMine.find(writes) ?? bands.mine.find((i) => writes(i) && i.trip.draft))
+    : undefined;
+  const leadRunning = lead ? phaseOf(lead.trip, todayISO) === "running" : false;
+  const restMine = bands.mine.filter((i) => i !== lead);
+  const shownWithDraft = new Set(
+    (app ? bands.mine.filter((i) => i.trip.draft) : []).map((i) => `${i.journal.username}/${i.trip.id}`),
+  );
+  const upcoming = bands.upcoming.filter((i) => !shownWithDraft.has(`${i.journal.username}/${i.trip.id}`));
+  const friendsOnTheRoad = bands.running.length > 0;
+  // The lead card holds the app's h1.
+  const RoadHeading = app ? "h2" : "h1";
 
   return (
     <div className="mt-8 flex flex-col gap-10 md:mt-10 md:gap-12">
@@ -398,15 +526,25 @@ export default function SignedInHome({
       {!nothingAnywhere && (
         <div className="grid gap-10 md:grid-cols-12 md:gap-12">
           <div className="flex min-w-0 flex-col gap-4 md:col-span-7">
-            {onTheRoad && (
-              <h1 className="flex items-baseline justify-between gap-3">
-                <Kicker className="font-semibold text-green-700">
-                  {t("home.road.title")} · {runningMine.length + bands.running.length}
-                </Kicker>
-                <Kicker>{t("home.road.byDates")}</Kicker>
-              </h1>
+            {lead && <LeadCard item={lead} isRunning={leadRunning} />}
+            {app && restMine.some((i) => i.trip.draft && writes(i)) && (
+              <ul className="flex flex-col gap-2">
+                {restMine
+                  .filter((i) => i.trip.draft && writes(i))
+                  .map((item) => (
+                    <DraftRow key={`${item.journal.username}/${item.trip.id}`} item={item} />
+                  ))}
+              </ul>
             )}
-            {bands.mine.map((item) => (
+            {(app ? friendsOnTheRoad : onTheRoad) && (
+              <RoadHeading className="flex items-baseline justify-between gap-3">
+                <Kicker className="font-semibold text-green-700">
+                  {t("home.road.title")} · {app ? bands.running.length : runningMine.length + bands.running.length}
+                </Kicker>
+                {!app && <Kicker>{t("home.road.byDates")}</Kicker>}
+              </RoadHeading>
+            )}
+            {(app ? restMine.filter((i) => !(i.trip.draft && writes(i))) : bands.mine).map((item) => (
               <MineStrip
                 key={`${item.journal.username}/${item.trip.id}`}
                 item={item}
@@ -436,10 +574,12 @@ export default function SignedInHome({
               </>
             ) : (
               <>
-                <h1 className="font-display text-[clamp(1.6rem,4vw,2.25rem)] font-semibold leading-tight text-ink-strong">
-                  {t("home.road.nobody")}
-                </h1>
-                {next && (
+                {!lead && (
+                  <h1 className="font-display text-[clamp(1.6rem,4vw,2.25rem)] font-semibold leading-tight text-ink-strong">
+                    {t("home.road.nobody")}
+                  </h1>
+                )}
+                {next && !lead && (
                   <p className="text-base text-ink-body">
                     {t("home.road.next", { trip: next.trip.title, date: day(next.trip.start ?? "") })}
                   </p>
@@ -476,13 +616,13 @@ export default function SignedInHome({
                 </ul>
               </section>
             )}
-            {bands.upcoming.length > 0 && (
+            {upcoming.length > 0 && (
               <section aria-labelledby="home-upcoming" className="flex flex-col gap-2">
                 <h2 id="home-upcoming">
                   <Kicker>{t("home.road.comingUp")}</Kicker>
                 </h2>
                 <ul className="flex flex-col gap-2">
-                  {bands.upcoming.map((item) => (
+                  {upcoming.map((item) => (
                     <TripRow
                       key={`${item.journal.username}/${item.trip.id}`}
                       item={item}
@@ -498,13 +638,20 @@ export default function SignedInHome({
                 {owned.map((journal) => (
                   <span key={journal.username} className="contents">
                     {!firstEmpty && (
-                      <Link href={`${journalPath(journal.username)}/studio/trip/new`} className={GHOST}>
+                      <Link
+                        href={`${journalPath(journal.username)}/studio/trip/new`}
+                        // B-3013: with nothing to continue, a new trip is the app's one next step.
+                        className={app && !lead && owned.length === 1 ? BUTTON : GHOST}
+                      >
                         {owned.length > 1 ? `${t("home.newTrip")} · ${journal.title}` : t("home.newTrip")}
                       </Link>
                     )}
-                    <Link href={`${journalPath(journal.username)}/studio`} className={GHOST}>
-                      {owned.length > 1 ? `${t("home.openStudio")} · ${journal.title}` : t("home.openStudio")}
-                    </Link>
+                    {/* In the app one studio is the Write tab; two are named here. */}
+                    {(!app || owned.length > 1) && (
+                      <Link href={`${journalPath(journal.username)}/studio`} className={GHOST}>
+                        {owned.length > 1 ? `${t("home.openStudio")} · ${journal.title}` : t("home.openStudio")}
+                      </Link>
+                    )}
                   </span>
                 ))}
               </div>
@@ -513,7 +660,7 @@ export default function SignedInHome({
         </div>
       )}
 
-      {paper && <ReadyForPaper item={paper} />}
+      {paper && (app ? <PaperRow item={paper} /> : <ReadyForPaper item={paper} />)}
       {nothingAnywhere && admin.length === 0 && owned.length === 0 && (
         <p className="text-base leading-6 text-ink-body">{t("home.none")}</p>
       )}
