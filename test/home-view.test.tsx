@@ -351,7 +351,7 @@ describe("the signed-in home in the iPhone app", () => {
   });
 
   test("a traveller on a friend's trip still only reads", () => {
-    const html = home([journal({ role: "named", trips: [trip({ ...running, through: "traveller" })] })], { app: true });
+    const html = home([journal({ role: "traveller", trips: [trip({ ...running, through: "traveller" })] })], { app: true });
     expect(html).not.toContain("/studio/");
   });
 
