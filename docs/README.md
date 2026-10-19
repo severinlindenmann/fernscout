@@ -17,6 +17,7 @@ in a checkout; this folder is the long form for a person.
 | [guides/](guides/) | the reader-facing guide on where a traveller's GPS goes (`gps`), served live at `/docs/guide/gps` in every maintained locale |
 | [statements.md](statements.md) | what a trip cost: reading a bank statement, and why it takes two calls |
 | [helper.md](helper.md) | Fernscout Helper, agent tools that make content for a journal |
+| [trip-planner.md](trip-planner.md) | a design, not built yet: the planner with a map, legs, ideas and a travel guide, and what readers see of a plan |
 | [currencies.md](currencies.md) | how money is stored, converted and refused |
 | [config-upgrades.md](config-upgrades.md) | moving a config file forward a version |
 | [deploy-mail.md](deploy-mail.md) | mail, and the file transport that needs no SMTP |
