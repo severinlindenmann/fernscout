@@ -5276,5 +5276,6 @@
   "meAccount.changePhone": "Cambia numero di cellulare",
   "meAccount.changePhoneTitle": "Cambia il tuo numero di cellulare",
   "meAccount.changePhoneBody": "Mandiamo un codice al nuovo numero. Una volta inserito, sostituisce il vecchio in ogni diario, e gli accessi con il vecchio numero terminano.",
-  "meAccount.changePhoneByEmail": "Per cambiare il numero, accedi con la tua e-mail."
+  "meAccount.changePhoneByEmail": "Per cambiare il numero, accedi con la tua e-mail.",
+  "landing.app.signInNote": "Anche se qualcuno ha condiviso un diario con te."
 }

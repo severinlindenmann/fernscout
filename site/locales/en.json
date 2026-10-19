@@ -5267,5 +5267,6 @@
   "meAccount.changePhone": "Change mobile number",
   "meAccount.changePhoneTitle": "Change your mobile number",
   "meAccount.changePhoneBody": "We send a code to the new number. Once you type it in, it replaces the old one in every journal, and sign-ins with the old number end.",
-  "meAccount.changePhoneByEmail": "To change your number, sign in with your email."
+  "meAccount.changePhoneByEmail": "To change your number, sign in with your email.",
+  "landing.app.signInNote": "Also if someone shared a journal with you."
 }

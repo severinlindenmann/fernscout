@@ -5272,5 +5272,6 @@
   "meAccount.changePhone": "Handynummer ändern",
   "meAccount.changePhoneTitle": "Deine Handynummer ändern",
   "meAccount.changePhoneBody": "Wir schicken einen Code an die neue Nummer. Sobald du ihn eingibst, ersetzt sie die alte in allen Reisetagebüchern, und Anmeldungen mit der alten Nummer enden.",
-  "meAccount.changePhoneByEmail": "Um deine Nummer zu ändern, melde dich mit deiner E-Mail an."
+  "meAccount.changePhoneByEmail": "Um deine Nummer zu ändern, melde dich mit deiner E-Mail an.",
+  "landing.app.signInNote": "Auch wenn dir jemand ein Reisetagebuch geteilt hat."
 }

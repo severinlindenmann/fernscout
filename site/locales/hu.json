@@ -5273,5 +5273,6 @@
   "meAccount.changePhone": "Mobilszám módosítása",
   "meAccount.changePhoneTitle": "A mobilszámod módosítása",
   "meAccount.changePhoneBody": "Kódot küldünk az új számra. Ha beírod, minden útinaplóban felváltja a régit, és a régi számmal történt bejelentkezések megszűnnek.",
-  "meAccount.changePhoneByEmail": "A számod módosításához jelentkezz be az e-mail-címeddel."
+  "meAccount.changePhoneByEmail": "A számod módosításához jelentkezz be az e-mail-címeddel.",
+  "landing.app.signInNote": "Akkor is, ha valaki megosztott veled egy naplót."
 }
