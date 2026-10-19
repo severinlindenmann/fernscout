@@ -15,7 +15,6 @@ import ServerChoice from "@/components/ServerChoice";
 import AppStart from "@/components/landing/AppStart";
 import { useNativeShell } from "@/components/nativeShell";
 import { useI18n } from "@/components/LocaleProvider";
-import { useNativeShell } from "@/components/nativeShell";
 import { SAVED_COPY_AFTER_MS, SEEN_KEY, probeHome, type HomePayload } from "@/lib/homeProbe";
 
 export type { PublicJournal };
@@ -167,7 +166,6 @@ export default function Landing({
     setExpected(window.localStorage.getItem(SEEN_KEY) === "1");
   }, []);
   const [signingIn, setSigningIn] = useState(false);
-  const nativeShell = useNativeShell();
 
   /**
    * `?start=1` opens the sign-in card without a click — B1905.
