@@ -33,6 +33,8 @@ services:
       # Inside the container the app always listens on 3000; the host port
       # is chosen below.
       PORT: "3000"
+      # Reported by /api/health as paidCommit (the deploy waits on it).
+      PAID_SHA: ${PAID_SHA:-}
       HOME: ${FERNSCOUT_DATA:-/var/lib/fernscout}/home
     ports:
       - "127.0.0.1:${FERNSCOUT_HOST_PORT:-3000}:3000"
