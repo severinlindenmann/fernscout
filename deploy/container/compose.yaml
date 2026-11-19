@@ -44,6 +44,9 @@ services:
       - ${FERNSCOUT_DATA:-/var/lib/fernscout}:${FERNSCOUT_DATA:-/var/lib/fernscout}
       # Backups written by scripts/backup.sh before restic ships them.
       - ${FERNSCOUT_BACKUPS:-/var/backups/fernscout}:/var/backups/fernscout
+      # scripts/backup.sh stages a full copy in /var/tmp before restic reads
+      # it: on disk, not in RAM, and outside the backup set. Owned by APP_UID.
+      - ${FERNSCOUT_STAGING:-/var/tmp/fernscout-staging}:/var/tmp
     depends_on:
       db:
         condition: service_healthy
