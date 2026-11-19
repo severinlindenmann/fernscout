@@ -1,0 +1,13 @@
+[Unit]
+Description=Report how %i ended (container)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/compose.env
+ExecStart=/srv/fernscout/deploy/container/job.sh alert %i
+TimeoutStartSec=2min
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout-alert

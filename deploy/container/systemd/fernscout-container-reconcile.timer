@@ -1,0 +1,11 @@
+[Unit]
+Description=Settle photobook orders the printer refused (container)
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=fernscout-container-job@photobook:reconcile.service
+
+[Install]
+WantedBy=timers.target

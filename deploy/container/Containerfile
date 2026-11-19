@@ -1,0 +1,85 @@
+# Fernscout as a container image, for Kiri (any docker-compatible engine works).
+#
+#   kiri build -f deploy/container/Containerfile \
+#     --build-arg NEXT_PUBLIC_SITE_URL=https://fernscout.ch -t fernscout:<sha> .
+#
+# or, with everything else, `kiri compose -f deploy/container/compose.yaml build`.
+# Run it from the repository root: the build context is the checkout, and a
+# private `paid/` tree beside it (uploaded, never cloned) is built in when it
+# is there, exactly as scripts/deploy.sh does on the VPS. See
+# deploy/container/README.md.
+#
+# One image per instance: `NEXT_PUBLIC_SITE_URL` is inlined into the client
+# bundle at build time, so fernscout.ch and dev.fernscout.ch each build their
+# own (B2557 says the same about the non-container deploy). Content and the
+# site config are read per request from the mounted data folder, so no
+# journal is baked in.
+
+# Node is pinned exactly: scripts/runtime-preflight.mjs refuses any other
+# version than .nvmrc. Debian 13 (trixie) matches the current server and
+# carries postgresql-client 17, which pg_dump for a 17 server needs.
+ARG NODE_IMAGE=node:24.21.0-trixie-slim
+
+# --- deps: node_modules, with the native modules compiled for this image ----
+FROM ${NODE_IMAGE} AS deps
+WORKDIR /app
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+COPY package.json package-lock.json .nvmrc ./
+# Full install, dev dependencies included: the runtime scripts (db:migrate,
+# photobook:reconcile, backup) run through tsx, which is a dev dependency.
+RUN npm ci --no-audit --no-fund
+
+# --- build: next build --------------------------------------------------------
+FROM ${NODE_IMAGE} AS build
+WORKDIR /app
+ARG NEXT_PUBLIC_SITE_URL
+# Set to 1 for the operator's own instance: the build then fails when paid/
+# is missing instead of shipping with every paid feature stubbed out.
+ARG FERNSCOUT_REQUIRE_PAID=
+ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
+    FERNSCOUT_REQUIRE_PAID=${FERNSCOUT_REQUIRE_PAID} \
+    NEXT_TELEMETRY_DISABLED=1 \
+    FERNSCOUT_SLOT_DIR=/tmp/fernscout-slots
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN test -n "$NEXT_PUBLIC_SITE_URL" || { echo "build-arg NEXT_PUBLIC_SITE_URL is required" >&2; exit 1; }
+RUN npm run build \
+ && rm -rf .next/cache
+
+# --- runtime -------------------------------------------------------------------
+FROM ${NODE_IMAGE} AS runtime
+# ffmpeg + heif-convert: photo/video conversion and thumbnails (lib/ingest/image.ts,
+# lib/extract/thumbnail.ts). postgresql-client + restic: scripts/backup.sh.
+# sqlite3: backup of a SQLite instance. tini: a real PID 1 for signals.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ffmpeg libheif-examples postgresql-client restic sqlite3 tini ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# A fixed, unprivileged uid. The data folder on the host is owned by it
+# (MOVE.md: chown on move day). Override with --build-arg APP_UID.
+ARG APP_UID=10001
+RUN groupadd --system --gid ${APP_UID} fernscout \
+ && useradd --system --uid ${APP_UID} --gid ${APP_UID} \
+      --home-dir /var/lib/fernscout/home --shell /usr/sbin/nologin fernscout
+
+WORKDIR /app
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    FERNSCOUT_SLOT_DIR=/tmp/fernscout-slots \
+    PORT=3000
+COPY --from=build --chown=root:root /app /app
+ARG GIT_SHA=
+ENV GIT_SHA=${GIT_SHA}
+
+USER fernscout
+EXPOSE 3000
+ENTRYPOINT ["/usr/bin/tini", "--"]
+# The app migrates its database itself on start (instrumentation.ts).
+# 0.0.0.0 inside the container only; compose publishes the port on the
+# host's 127.0.0.1, so Caddy on the host is still the only way in.
+CMD ["sh", "-c", "exec node node_modules/next/dist/bin/next start --hostname 0.0.0.0 --port \"${PORT:-3000}\""]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" >/dev/null || exit 1
