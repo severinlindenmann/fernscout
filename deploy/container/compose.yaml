@@ -35,6 +35,9 @@ services:
       PORT: "3000"
       # Reported by /api/health as paidCommit (the deploy waits on it).
       PAID_SHA: ${PAID_SHA:-}
+      # restic groups snapshots by host for retention; a one-off container has
+      # a random hostname, so name it once per instance.
+      RESTIC_HOST: ${FERNSCOUT_PROJECT:-fernscout}
       HOME: ${FERNSCOUT_DATA:-/var/lib/fernscout}/home
     ports:
       - "127.0.0.1:${FERNSCOUT_HOST_PORT:-3000}:3000"
