@@ -1,3 +1,4 @@
+# Set FERNSCOUT_HOSTNET=1 in compose.env too, so job.sh uses this file.
 # Override for a host whose firewall blocks routed traffic from containers
 # (ufw's default `deny (routed)`), so containers on a bridge network have no
 # DNS and no internet. App and database share the host's network instead and

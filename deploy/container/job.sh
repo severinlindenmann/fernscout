@@ -10,6 +10,8 @@ here="$(cd "$(dirname "$0")" && pwd)"
 # Kiri's socket, as on the Hostinger server).
 engine="${CONTAINER_ENGINE:-$(command -v kiri >/dev/null 2>&1 && echo kiri || echo docker)}"
 compose=("$engine" compose -f "$here/compose.yaml")
+# FERNSCOUT_HOSTNET=1 (in compose.env) when the app runs with compose.hostnet.yaml.
+[ "${FERNSCOUT_HOSTNET:-}" = 1 ] && compose+=(-f "$here/compose.hostnet.yaml")
 [ -n "${FERNSCOUT_COMPOSE_ENV:-}" ] && compose+=(--env-file "$FERNSCOUT_COMPOSE_ENV")
 job="${1:?which job}"; shift || true
 case "$job" in
