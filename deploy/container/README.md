@@ -22,7 +22,8 @@ read `docker compose` for `kiri compose` below; `job.sh` picks whichever is ther
 /etc/fernscout/db.env        POSTGRES_PASSWORD=...
 /etc/fernscout/compose.env   NEXT_PUBLIC_SITE_URL, GIT_SHA, FERNSCOUT_DATA, FERNSCOUT_HOST_PORT, ...
 /var/lib/fernscout/          data (content, home, mail, rates, staging, config.json), owned by 10001:10001
-/var/backups/fernscout/      what backup.sh stages before restic ships it
+/var/backups/fernscout/      the local restic repository (RESTIC_REPOSITORY)
+/var/lib/fernscout-staging/  backup.sh staging, mode 0700, owned by 10001 (FERNSCOUT_STAGING)
 ```
 
 Two values in `/etc/fernscout/env` differ from the non-container deploy:
