@@ -6,7 +6,9 @@
 #   job.sh <npm script> [args]    npm run <script> -- [args]
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
-engine="${CONTAINER_ENGINE:-kiri}"
+# `kiri` where Kiri ships its own CLI, else `docker` (the Docker CLI talking to
+# Kiri's socket, as on the Hostinger server).
+engine="${CONTAINER_ENGINE:-$(command -v kiri >/dev/null 2>&1 && echo kiri || echo docker)}"
 compose=("$engine" compose -f "$here/compose.yaml")
 [ -n "${FERNSCOUT_COMPOSE_ENV:-}" ] && compose+=(--env-file "$FERNSCOUT_COMPOSE_ENV")
 job="${1:?which job}"; shift || true

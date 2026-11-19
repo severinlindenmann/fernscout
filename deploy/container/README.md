@@ -2,8 +2,9 @@
 
 A second way to run an instance, beside `scripts/deploy.sh` on a plain VPS:
 one image for the app, the official Postgres 17 image for the database, and
-the host's own Caddy in front. Kiri is the engine it was written for; any
-docker-compatible CLI works (`CONTAINER_ENGINE=docker`).
+the host's own Caddy in front. Kiri is the engine it was written for. Where Kiri is installed as
+engine only (kiri-lite, as on the Hostinger server), the Docker CLI talks to it:
+read `docker compose` for `kiri compose` below; `job.sh` picks whichever is there.
 
 | File | What it is |
 |---|---|
@@ -53,6 +54,20 @@ project name and env: `FERNSCOUT_PROJECT=fernscout-dev`,
 `FERNSCOUT_ENV_FILE=/etc/fernscout/dev.env`, `FERNSCOUT_DB_ENV_FILE=/etc/fernscout/dev-db.env`,
 `NEXT_PUBLIC_SITE_URL=https://dev.fernscout.ch`. It builds its own image
 because the site URL is inlined into the client bundle.
+
+### Containers need outbound internet
+
+The app talks to SMTP, Anthropic, Stripe, Gelato, APNs and the restic
+repository, and `npm ci` in the build needs the npm registry. A host whose
+firewall denies routed traffic (ufw's default) leaves containers without
+DNS. Either open routed traffic from the container networks to the public
+interface (private ranges denied first), or, for the build only, use a
+builder on the host network:
+
+```bash
+docker buildx create --name fernscout-hostnet --driver docker-container --driver-opt network=host
+BUILDX_BUILDER=fernscout-hostnet docker compose -f deploy/container/compose.yaml --env-file ... build
+```
 
 ## Jobs and timers
 
