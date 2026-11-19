@@ -9,6 +9,7 @@ read `docker compose` for `kiri compose` below; `job.sh` picks whichever is ther
 | File | What it is |
 |---|---|
 | `Containerfile` | Multi-stage build: deps, `next build`, a slim runtime as uid 10001 with ffmpeg, heif-convert, pg_dump 17, restic |
+| `compose.hostnet.yaml` | Override: host network, app and db on 127.0.0.1 only, for hosts that block routed container traffic |
 | `compose.yaml` | `app` (published on `127.0.0.1` only) and `db` (no port), data folder bind-mounted at its host path |
 | `job.sh` | Runs a job (backup, photobook reconcile, any npm script) in a one-off container of the app |
 | `systemd/` | Host timers that call `job.sh`; they replace `fernscout-backup.*` and `fernscout-reconcile.*` |
@@ -61,8 +62,17 @@ The app talks to SMTP, Anthropic, Stripe, Gelato, APNs and the restic
 repository, and `npm ci` in the build needs the npm registry. A host whose
 firewall denies routed traffic (ufw's default) leaves containers without
 DNS. Either open routed traffic from the container networks to the public
-interface (private ranges denied first), or, for the build only, use a
-builder on the host network:
+interface (private ranges denied first), or run on the host's network with
+`compose.hostnet.yaml` (app and database listen on 127.0.0.1 only; each
+instance then needs its own `FERNSCOUT_HOST_PORT` and `FERNSCOUT_DB_PORT`, and
+`DATABASE_URL` points at `127.0.0.1:<FERNSCOUT_DB_PORT>`):
+
+```bash
+docker compose -f deploy/container/compose.yaml -f deploy/container/compose.hostnet.yaml \
+  --env-file /etc/fernscout/compose.env up -d
+```
+
+The build needs the npm registry too; use a builder on the host network:
 
 ```bash
 docker buildx create --name fernscout-hostnet --driver docker-container --driver-opt network=host
