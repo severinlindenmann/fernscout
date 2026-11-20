@@ -56,6 +56,9 @@ export type StreetLayers = {
   /** Stroked lines: roads and tracks, undifferentiated by kind — see the
    * module doc for why. */
   roads: string[];
+  /** False when a tile this card wanted could not be fetched — only ever for
+   * hosted tiles, where a failure can be temporary (FERN-6). */
+  complete?: boolean;
 };
 
 /** The vector layers this card draws from a Protomaps-schema tile — see
@@ -173,18 +176,25 @@ let openFreeMapTemplate: { template: string; at: number } | undefined;
 const TEMPLATE_TTL_MS = 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 8000;
 
+async function fetchOpenFreeMapTemplate(): Promise<string | undefined> {
+  try {
+    const res = await fetch(OPENFREEMAP_TILEJSON, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as { tiles?: unknown };
+    const template = Array.isArray(json.tiles) ? json.tiles[0] : undefined;
+    return typeof template === "string" && template.startsWith(`${OPENFREEMAP_ORIGIN}/`) ? template : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function openFreeMapReader(): Promise<TileReader | null> {
   if (!openFreeMapTemplate || Date.now() - openFreeMapTemplate.at > TEMPLATE_TTL_MS) {
-    try {
-      const res = await fetch(OPENFREEMAP_TILEJSON, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-      if (!res.ok) return null;
-      const json = (await res.json()) as { tiles?: unknown };
-      const template = Array.isArray(json.tiles) ? json.tiles[0] : undefined;
-      if (typeof template !== "string" || !template.startsWith(`${OPENFREEMAP_ORIGIN}/`)) return null;
-      openFreeMapTemplate = { template, at: Date.now() };
-    } catch {
-      return null;
-    }
+    const fresh = await fetchOpenFreeMapTemplate();
+    if (fresh) openFreeMapTemplate = { template: fresh, at: Date.now() };
+    // A failed refresh keeps the last template: an older weekly build's tiles
+    // still answer, and one hiccup should not strip streets from every card.
+    if (!openFreeMapTemplate) return null;
   }
   const { template } = openFreeMapTemplate;
   return {
@@ -293,6 +303,7 @@ export async function streetLayersForBbox(
     }
   }
 
+  out.complete = fetched.every((data) => data !== undefined);
   return sawAny ? out : null;
 }
 

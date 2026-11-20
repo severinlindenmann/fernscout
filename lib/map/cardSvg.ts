@@ -185,7 +185,10 @@ async function renderAndCache(
     selectedDay: day,
     palette: cardPalette(scheme),
   });
-  writeCachedCardSvg(key, svg);
+  // FERN-6: hosted tiles can fail for a moment, and this key does not change
+  // when they come back — so a card missing any of them is served, not kept.
+  const hosted = streetInputsFor(user, tripId) === "openfreemap";
+  if (!hosted || street?.complete === true) writeCachedCardSvg(key, svg);
   return { svg, usedStreet: street !== null };
 }
 

@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { loadServerConfig } from "../config";
-import { OPENFREEMAP_MAX_ZOOM, OPENFREEMAP_TILEJSON, type StreetMapsProvider } from "../map/openFreeMap";
+import { OPENFREEMAP_TILEJSON, OPENFREEMAP_VIEW_MAX_ZOOM, type StreetMapsProvider } from "../map/openFreeMap";
 
 /**
  * Where street tiles come from — FERN-6. `features.streetMaps.provider`:
@@ -25,7 +25,7 @@ const OPENFREEMAP_REGION: MapRegion = { file: OPENFREEMAP_TILEJSON, bbox: [-180,
 const OPENFREEMAP_STREET_MAP: StreetMapFile = {
   url: OPENFREEMAP_TILEJSON,
   bounds: [[-180, -85.0511], [180, 85.0511]],
-  maxZoom: OPENFREEMAP_MAX_ZOOM,
+  maxZoom: OPENFREEMAP_VIEW_MAX_ZOOM,
 };
 
 /**

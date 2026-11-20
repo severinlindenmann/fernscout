@@ -19,8 +19,12 @@ export const OPENFREEMAP_ORIGIN = "https://tiles.openfreemap.org";
  * URLs change with each weekly build and stay cacheable for good. */
 export const OPENFREEMAP_TILEJSON = `${OPENFREEMAP_ORIGIN}/planet`;
 
-/** The planet build's own deepest zoom; MapLibre overzooms past it. */
+/** The planet build's own deepest zoom: what a server-side card asks for. */
 export const OPENFREEMAP_MAX_ZOOM = 14;
+
+/** How far a map may zoom (`StreetMap` adds one more): z14 tiles overzoom
+ * cleanly, and local Protomaps files let a reader go to z16 too. */
+export const OPENFREEMAP_VIEW_MAX_ZOOM = 15;
 
 /** Glyphs for the three Noto Sans faces the style asks for, every Unicode
  * range — unlike `public/fonts/`, which carries Latin only. */
