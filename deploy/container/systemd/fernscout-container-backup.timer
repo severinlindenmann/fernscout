@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly Fernscout backup (container)
+
+[Timer]
+OnCalendar=*-*-* 03:20:00
+RandomizedDelaySec=20min
+Persistent=true
+Unit=fernscout-container-job@backup.service
+
+[Install]
+WantedBy=timers.target

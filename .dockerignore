@@ -1,0 +1,18 @@
+# Build context for deploy/container/Containerfile. `paid/` is deliberately
+# NOT listed: when the private tree is uploaded beside the checkout it is
+# built in (see deploy/container/README.md).
+.git
+node_modules
+.next
+.next-*
+.data
+.env*
+!.env.example
+paid.new
+paid.prev
+content/*
+!content/example
+ios
+coverage
+*.log
+.deploy-state*

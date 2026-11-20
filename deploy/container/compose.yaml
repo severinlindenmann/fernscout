@@ -1,0 +1,92 @@
+# Fernscout under Kiri (or any docker-compatible engine):
+#
+#   kiri compose -f deploy/container/compose.yaml --env-file /etc/fernscout/compose.env up -d --build
+#
+# Run from the repository root. What lives OUTSIDE git, on the host:
+#   /etc/fernscout/env          the app's environment (same names as today;
+#                               DATABASE_URL points at host `db`, see README)
+#   /etc/fernscout/db.env       POSTGRES_PASSWORD for the database container
+#   /etc/fernscout/compose.env  the variables below (paths, site URL, ports)
+#
+# Caddy stays on the host as the one reverse proxy for every site there:
+# the app is published on 127.0.0.1 only, and deploy/fernscout.caddy keeps
+# proxying to 127.0.0.1:3000 as it does today. Redis is not part of this:
+# fernscout never connects to one (the Redis on the old server is not its).
+
+name: ${FERNSCOUT_PROJECT:-fernscout}
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: deploy/container/Containerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?set NEXT_PUBLIC_SITE_URL}
+        FERNSCOUT_REQUIRE_PAID: ${FERNSCOUT_REQUIRE_PAID:-}
+        GIT_SHA: ${GIT_SHA:-}
+        APP_UID: ${APP_UID:-10001}
+    image: ${FERNSCOUT_IMAGE:-fernscout}:${GIT_SHA:-local}
+    restart: unless-stopped
+    env_file:
+      - ${FERNSCOUT_ENV_FILE:-/etc/fernscout/env}
+    environment:
+      # Inside the container the app always listens on 3000; the host port
+      # is chosen below.
+      PORT: "3000"
+      # Reported by /api/health as paidCommit (the deploy waits on it).
+      PAID_SHA: ${PAID_SHA:-}
+      # restic groups snapshots by host for retention; a one-off container has
+      # a random hostname, so name it once per instance.
+      RESTIC_HOST: ${FERNSCOUT_PROJECT:-fernscout}
+      HOME: ${FERNSCOUT_DATA:-/var/lib/fernscout}/home
+    ports:
+      - "127.0.0.1:${FERNSCOUT_HOST_PORT:-3000}:3000"
+    volumes:
+      # Mounted at the SAME path as on the host, so DATA_DIR, CONTENT_DIR,
+      # FERNSCOUT_CONFIG and PROBE_DIR in the env file keep their values.
+      - ${FERNSCOUT_DATA:-/var/lib/fernscout}:${FERNSCOUT_DATA:-/var/lib/fernscout}
+      # Backups written by scripts/backup.sh before restic ships them.
+      - ${FERNSCOUT_BACKUPS:-/var/backups/fernscout}:/var/backups/fernscout
+      # scripts/backup.sh stages a full copy in /var/tmp before restic reads
+      # it: on disk, not in RAM, and outside the backup set. Create it first as
+      # APP_UID, mode 0700, under a root-owned parent (not the world-writable /var/tmp).
+      - ${FERNSCOUT_STAGING:-/var/lib/fernscout-staging}:/var/tmp
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+      # Next's image and fetch cache; regenerated on demand.
+      - /app/.next/cache
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: ${FERNSCOUT_MEM:-3g}
+    networks: [internal]
+
+  db:
+    image: postgres:17-trixie
+    restart: unless-stopped
+    env_file:
+      - ${FERNSCOUT_DB_ENV_FILE:-/etc/fernscout/db.env}
+    environment:
+      POSTGRES_USER: fernscout
+      POSTGRES_DB: ${FERNSCOUT_DB_NAME:-fernscout}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fernscout -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 1g
+    networks: [internal]
+    # No ports: only the app reaches the database.
+
+volumes:
+  pgdata:
+
+networks:
+  internal:

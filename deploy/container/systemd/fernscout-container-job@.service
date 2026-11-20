@@ -1,0 +1,22 @@
+# Run one Fernscout job inside the app's image, from the host's systemd.
+# %i is the npm script or path, e.g.:
+#   fernscout-container-job@backup.service           -> scripts/backup.sh
+#   fernscout-container-job@photobook:reconcile.service -> npm run photobook:reconcile
+# Paired with the .timer files beside it; replaces fernscout-backup.service and
+# fernscout-reconcile.service of the non-container deploy. OnFailure keeps the
+# alert mail of today (fernscout-container-alert@.service).
+[Unit]
+Description=Fernscout job %i (container)
+After=network-online.target
+Wants=network-online.target
+OnFailure=fernscout-container-alert@%n.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/compose.env
+ExecStart=/srv/fernscout/deploy/container/job.sh %i
+TimeoutStartSec=30min
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout-job
