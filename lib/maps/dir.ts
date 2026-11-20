@@ -1,6 +1,32 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
+import { loadServerConfig } from "../config";
+import { OPENFREEMAP_MAX_ZOOM, OPENFREEMAP_TILEJSON, type StreetMapsProvider } from "../map/openFreeMap";
+
+/**
+ * Where street tiles come from — FERN-6. `features.streetMaps.provider`:
+ * `"local"` (the default, and what an unset or unknown value means here —
+ * `lib/capabilities.ts` reports an unknown one) reads PMTiles under
+ * `MAPS_DIR`; `"openfreemap"` draws every map from OpenFreeMap's hosted
+ * planet and needs no files at all. `MAPS_DIR` stays the fallback: switching
+ * back is one word in config.json.
+ */
+export function streetMapsProvider(): StreetMapsProvider {
+  const raw = (loadServerConfig().features.streetMaps as Record<string, unknown>).provider;
+  return raw === "openfreemap" ? "openfreemap" : "local";
+}
+
+/** The one region an OpenFreeMap instance has: the whole planet. Its `file`
+ * is the TileJSON URL, which `cardSvg.ts` recognises and fetches over HTTPS
+ * instead of opening a path. */
+const OPENFREEMAP_REGION: MapRegion = { file: OPENFREEMAP_TILEJSON, bbox: [-180, -85.0511, 180, 85.0511] };
+
+const OPENFREEMAP_STREET_MAP: StreetMapFile = {
+  url: OPENFREEMAP_TILEJSON,
+  bounds: [[-180, -85.0511], [180, 85.0511]],
+  maxZoom: OPENFREEMAP_MAX_ZOOM,
+};
 
 /**
  * Where an operator's Protomaps PMTiles files live — B2535.
@@ -167,6 +193,7 @@ function readIndex(): MapsIndex | null {
  * With a world file (B2566) it is never undefined: that file is appended.
  */
 export function tripMapRegions(user: string, tripId: string): MapRegion[] | undefined {
+  if (streetMapsProvider() === "openfreemap") return [OPENFREEMAP_REGION];
   const index = readIndex();
   const key = `${user}/${tripId}`;
   const regions = index?.trips[key] ?? [];
@@ -192,6 +219,7 @@ function planetRegion(): MapRegion | undefined {
  * draws: the world file at street level when there is one, else the z0–6
  * underlay every street-map instance has. */
 export function worldStreetMapUrl(): string {
+  if (streetMapsProvider() === "openfreemap") return OPENFREEMAP_TILEJSON;
   return mapsFileUrl(planetRegion()?.file ?? WORLD_FILE);
 }
 
@@ -258,6 +286,7 @@ export function primaryStreetMap(
   tripId: string,
   mainRegionPoints: readonly { lat: number; lng: number }[] = [],
 ): StreetMapFile | undefined {
+  if (streetMapsProvider() === "openfreemap") return OPENFREEMAP_STREET_MAP;
   const regions = pageRegions(user, tripId);
   if (!regions) return undefined;
   return toStreetMapFile(pickCoveringRegion(regions, mainRegionPoints));
@@ -286,6 +315,7 @@ export function coveringRegion(
  * conditions as `tripMapRegions`.
  */
 export function streetMapRegionFiles(user: string, tripId: string): StreetMapFile[] | undefined {
+  if (streetMapsProvider() === "openfreemap") return [OPENFREEMAP_STREET_MAP];
   const regions = pageRegions(user, tripId);
   return regions?.map(toStreetMapFile);
 }

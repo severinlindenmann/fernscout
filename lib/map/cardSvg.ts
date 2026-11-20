@@ -9,6 +9,7 @@ import { frameRoute, place, type Frame, type Point } from "../mapFrame";
 import { cardPalette, type CardPalette } from "./cardPalette";
 import { buildTripFrame, linesForDay, placesForDay, type MapLine, type MapPlace, type TripFrame } from "./tripFrame";
 import { streetLayersForBbox, type StreetLayers } from "./streetTiles";
+import { isOpenFreeMap } from "./openFreeMap";
 import { readCachedCardSvg, writeCachedCardSvg } from "./cardCache";
 import { unproject } from "../mapProjection.mjs";
 
@@ -99,6 +100,10 @@ function streetInputsFor(user: string, tripId: string): string {
   if (!isEnabled("streetMaps", user)) return "off";
   const regions = tripMapRegions(user, tripId);
   if (!regions || regions.length === 0) return "none";
+  // Hosted tiles have no mtime; a new weekly build changes little a card
+  // shows, and the provider's name alone re-renders every card made from
+  // local files once the operator switches.
+  if (regions.some((r) => isOpenFreeMap(r.file))) return "openfreemap";
   // The file's own mtime, so a re-extracted region (`npm run maps:trip`)
   // invalidates the cache the same way a changed place or track does —
   // README: "invalidate automatically when they change".
@@ -114,6 +119,8 @@ function streetInputsFor(user: string, tripId: string): string {
 }
 
 function regionAbsolutePath(relFile: string): string {
+  // FERN-6: OpenFreeMap's region is its TileJSON URL, fetched as it is.
+  if (isOpenFreeMap(relFile)) return relFile;
   const dir = process.env.MAPS_DIR?.trim();
   return dir ? `${dir}/${relFile}` : relFile;
 }

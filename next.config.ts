@@ -4,6 +4,7 @@ import path from "node:path";
 import { REQUEST_MAX_BYTES } from "./lib/validate/media";
 import { NEXT_DEVICE_SIZES, NEXT_IMAGE_SIZES } from "./lib/mediaSizes";
 import { syncPaidLocaleScopes } from "./scripts/locale-scopes-paid.mjs";
+import { OPENFREEMAP_ORIGIN } from "./lib/map/openFreeMap";
 
 /**
  * Open core: `@paid/*` resolves to `paid/` when that folder is present and to
@@ -94,7 +95,13 @@ const documentCspDirectives = [
   "font-src 'self' data:",
   // `'self'` covers same-origin websockets in CSP3, but dev's HMR socket is
   // the one thing that breaks silently if a browser disagrees.
-  `connect-src 'self'${isDev ? " ws:" : ""}`,
+  //
+  // FERN-6: street-map tiles, TileJSON and glyphs when an operator picks
+  // `features.streetMaps.provider: "openfreemap"` — fetched by MapLibre's
+  // worker, never navigated to. Listed whatever the provider: this file is
+  // read at build time, the provider at run time, and one fixed read-only
+  // tile host is no exfiltration path.
+  `connect-src 'self' ${OPENFREEMAP_ORIGIN}${isDev ? " ws:" : ""}`,
   "worker-src 'self'",
   "manifest-src 'self'",
   // Only in production: over plain http on localhost this would upgrade the
