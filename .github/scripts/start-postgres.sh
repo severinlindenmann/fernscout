@@ -22,6 +22,12 @@ done
 
 sudo apt-get update -qq
 sudo apt-get install -y -qq --no-install-recommends postgresql-17 postgresql-client-17
+# The ubuntu-26.04 image (ubuntu-latest since 22 Oct 2026) installs the server
+# without creating its main cluster, so pg_lsclusters came back empty and every
+# Postgres job failed here. Create it ourselves when the package did not.
+if ! sudo pg_lsclusters --no-header | grep -qE '^17 +main '; then
+  sudo pg_createcluster 17 main --port 5432
+fi
 sudo pg_ctlcluster 17 main start 2>/dev/null || true
 sudo pg_lsclusters
 sudo pg_lsclusters --no-header | grep -qE '^17 +main +5432 +online' \
