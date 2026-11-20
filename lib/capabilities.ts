@@ -6,6 +6,7 @@ import { addressLookupEndpoints } from "./addressLookup";
 import { allowedAppleEnvironments } from "./apple/environments";
 import { reviewLoginNote } from "./auth/reviewLogin";
 import { PAID_AREAS } from "@paid/manifest";
+import { STREET_MAPS_PROVIDERS } from "./map/openFreeMap";
 
 /** Capabilities whose implementation lives in paid/ (open core). Their
  *  switches stay in config for compatibility; a build without paid/ refuses
@@ -576,6 +577,15 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
     return { env };
   }
   if (name === "streetMaps") {
+    const provider = optionOf(feature, "provider") ?? "local";
+    if (!(STREET_MAPS_PROVIDERS as readonly string[]).includes(provider)) {
+      return {
+        env: [],
+        problem: `features.streetMaps.provider "${provider}" is unknown (expected one of: ${STREET_MAPS_PROVIDERS.join(", ")})`,
+      };
+    }
+    // FERN-6: hosted tiles, no key and no files — nothing to check here.
+    if (provider === "openfreemap") return { env: [] };
     const dir = process.env.MAPS_DIR?.trim();
     // No MAPS_DIR at all: reported as a missing env var, the same shape as
     // every other capability's credential — `MAPS_DIR` behaves like one here.

@@ -3,6 +3,23 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Info } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
+import { isOpenFreeMap } from "@/lib/map/openFreeMap";
+
+/** FERN-6: OpenFreeMap asks for its own name and OpenMapTiles' next to the
+ * OpenStreetMap credit. Brand names, the same in every language. */
+function HostedCredit() {
+  return (
+    <>
+      {" · "}
+      <a href="https://openfreemap.org" target="_blank" rel="noreferrer">
+        OpenFreeMap
+      </a>{" "}
+      <a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">
+        © OpenMapTiles
+      </a>
+    </>
+  );
+}
 
 /** A map's own coordinate handle, exposed for a caller (B2537) to draw
  * markers or lines on it after it loads — through the real maplibre-gl
@@ -78,6 +95,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const [creditFolded, setCreditFolded] = useState(false);
+  const hosted = isOpenFreeMap(pmtilesUrl);
   const [creditOpen, setCreditOpen] = useState(false);
 
   useImperativeHandle(ref, () => ({ get map() { return mapRef.current; } }), []);
@@ -123,7 +141,9 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
       // B2603: once the first view has settled, fetch this area's tiles for
       // the next two zoom levels into the browser's cache.
       created.once("idle", async () => {
-        const source = created.getSource("protomaps") as { tiles?: string[] } | undefined;
+        const source = (created.getSource("protomaps") ?? created.getSource("openmaptiles")) as
+          | { tiles?: string[] }
+          | undefined;
         const template = source?.tiles?.[0];
         if (!template || cancelled) return;
         const { warmupUrls, warmTiles } = await import("@/lib/map/tileWarmup");
@@ -175,6 +195,7 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
         <div ref={containerRef} className="h-full w-full" />
         <span className="absolute bottom-1.5 left-1.5 rounded bg-surface-raised/80 px-1.5 py-0.5 text-[10px] leading-none text-ink-secondary">
           {t("mapCard.osmCredit")}
+          {hosted && <HostedCredit />}
         </span>
       </div>
     );
@@ -185,14 +206,12 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
       <div ref={containerRef} className="h-full w-full" />
       <div className="absolute bottom-3 left-3 z-10">
         {!creditFolded ? (
-          <a
-            href="https://www.openstreetmap.org/copyright"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full bg-surface-raised/90 px-3 py-1 text-xs text-ink-secondary shadow-sm backdrop-blur"
-          >
-            {t("map.osmCredit")}
-          </a>
+          <span className="rounded-full bg-surface-raised/90 px-3 py-1 text-xs text-ink-secondary shadow-sm backdrop-blur">
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+              {t("map.osmCredit")}
+            </a>
+            {hosted && <HostedCredit />}
+          </span>
         ) : (
           <div className="relative">
             <button
@@ -205,14 +224,12 @@ const StreetMap = forwardRef<StreetMapHandle, StreetMapProps>(function StreetMap
               <Info className="h-4 w-4" aria-hidden />
             </button>
             {creditOpen && (
-              <a
-                href="https://www.openstreetmap.org/copyright"
-                target="_blank"
-                rel="noreferrer"
-                className="absolute bottom-9 left-0 whitespace-nowrap rounded-full bg-surface-raised/90 px-3 py-1 text-xs text-ink-secondary shadow-sm backdrop-blur"
-              >
-                {t("map.osmCredit")}
-              </a>
+              <span className="absolute bottom-9 left-0 whitespace-nowrap rounded-full bg-surface-raised/90 px-3 py-1 text-xs text-ink-secondary shadow-sm backdrop-blur">
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+                  {t("map.osmCredit")}
+                </a>
+                {hosted && <HostedCredit />}
+              </span>
             )}
           </div>
         )}

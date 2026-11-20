@@ -6,6 +6,7 @@ import Pbf from "pbf";
 import { VectorTile } from "@mapbox/vector-tile";
 import { PMTiles, type Source, type RangeResponse, Compression } from "pmtiles";
 import { place, type Frame } from "../mapFrame";
+import { isOpenFreeMap, OPENFREEMAP_MAX_ZOOM, OPENFREEMAP_ORIGIN, OPENFREEMAP_TILEJSON } from "./openFreeMap";
 
 const gunzip = promisify(zlib.gunzip);
 
@@ -55,6 +56,9 @@ export type StreetLayers = {
   /** Stroked lines: roads and tracks, undifferentiated by kind — see the
    * module doc for why. */
   roads: string[];
+  /** False when a tile this card wanted could not be fetched — only ever for
+   * hosted tiles, where a failure can be temporary (FERN-6). */
+  complete?: boolean;
 };
 
 /** The vector layers this card draws from a Protomaps-schema tile — see
@@ -121,7 +125,99 @@ function chooseZoom(dLngDeg: number, widthPx: number, minZoom: number, maxZoom: 
 }
 
 /**
- * Decodes the vector tiles covering `bbox` out of one PMTiles file, and
+ * Where a card's tiles come from: a local PMTiles file (Protomaps schema) or
+ * OpenFreeMap over HTTPS (OpenMapTiles schema, FERN-6). The schema decides
+ * the layer names and how a road's class reads; everything after that is
+ * shared.
+ */
+type TileReader = {
+  minZoom: number;
+  maxZoom: number;
+  getZxy(z: number, x: number, y: number): Promise<ArrayBuffer | undefined>;
+  layerNames: Record<(typeof LAYER_NAMES)[number], string>;
+  /** The Protomaps `kind` a road reads as, or `undefined` for a line that is
+   * not a road at all (rail, ferry, aerialway). */
+  roadKind(properties: Record<string, unknown>): string | undefined;
+};
+
+async function pmtilesReader(file: string): Promise<TileReader | null> {
+  try {
+    const pmtiles = new PMTiles(new NodeFileSource(file), undefined, nodeDecompress);
+    const header = await pmtiles.getHeader();
+    return {
+      minZoom: header.minZoom,
+      maxZoom: header.maxZoom,
+      getZxy: async (z, x, y) => (await pmtiles.getZxy(z, x, y))?.data,
+      layerNames: { water: "water", roads: "roads" },
+      roadKind: (p) => (typeof p.kind === "string" ? p.kind : "other"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** OpenMapTiles `transportation.class` → the Protomaps `kind` the filters
+ * below already speak. */
+const OPENMAPTILES_ROAD_KIND: Record<string, string> = {
+  motorway: "highway",
+  trunk: "highway",
+  primary: "major_road",
+  secondary: "major_road",
+  tertiary: "medium_road",
+  minor: "minor_road",
+  service: "minor_road",
+  track: "path",
+  path: "path",
+};
+
+/** The dated tile template from OpenFreeMap's TileJSON, kept for an hour so a
+ * new weekly build is picked up without a TileJSON request per card. */
+let openFreeMapTemplate: { template: string; at: number } | undefined;
+const TEMPLATE_TTL_MS = 60 * 60 * 1000;
+const FETCH_TIMEOUT_MS = 8000;
+
+async function fetchOpenFreeMapTemplate(): Promise<string | undefined> {
+  try {
+    const res = await fetch(OPENFREEMAP_TILEJSON, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as { tiles?: unknown };
+    const template = Array.isArray(json.tiles) ? json.tiles[0] : undefined;
+    return typeof template === "string" && template.startsWith(`${OPENFREEMAP_ORIGIN}/`) ? template : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function openFreeMapReader(): Promise<TileReader | null> {
+  if (!openFreeMapTemplate || Date.now() - openFreeMapTemplate.at > TEMPLATE_TTL_MS) {
+    const fresh = await fetchOpenFreeMapTemplate();
+    if (fresh) openFreeMapTemplate = { template: fresh, at: Date.now() };
+    // A failed refresh keeps the last template: an older weekly build's tiles
+    // still answer, and one hiccup should not strip streets from every card.
+    if (!openFreeMapTemplate) return null;
+  }
+  const { template } = openFreeMapTemplate;
+  return {
+    minZoom: 0,
+    maxZoom: OPENFREEMAP_MAX_ZOOM,
+    getZxy: async (z, x, y) => {
+      const url = template.replace("{z}", String(z)).replace("{x}", String(x)).replace("{y}", String(y));
+      const res = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+      if (!res.ok) return undefined;
+      const buf = Buffer.from(await res.arrayBuffer());
+      // A tile body may itself be gzip (magic 1f 8b) if a proxy did not
+      // decode it; Node's fetch already undoes a Content-Encoding.
+      const raw = buf[0] === 0x1f && buf[1] === 0x8b ? await gunzip(buf) : buf;
+      return raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer;
+    },
+    layerNames: { water: "water", roads: "transportation" },
+    roadKind: (p) => (typeof p.class === "string" ? OPENMAPTILES_ROAD_KIND[p.class] : undefined),
+  };
+}
+
+/**
+ * Decodes the vector tiles covering `bbox` out of one PMTiles file (or, for
+ * the OpenFreeMap URL, from its hosted tiles), and
  * projects every feature via `place()` into frame-local pixels at `widthPx`
  * — the same projection every marker and line on this card uses, so
  * a road and a day marker never disagree about where the ground is.
@@ -136,17 +232,11 @@ export async function streetLayersForBbox(
   frame: Frame,
   widthPx: number,
 ): Promise<StreetLayers | null> {
-  let pmtiles: PMTiles;
-  let header: Awaited<ReturnType<PMTiles["getHeader"]>>;
-  try {
-    pmtiles = new PMTiles(new NodeFileSource(file), undefined, nodeDecompress);
-    header = await pmtiles.getHeader();
-  } catch {
-    return null;
-  }
+  const reader = isOpenFreeMap(file) ? await openFreeMapReader() : await pmtilesReader(file);
+  if (!reader) return null;
 
   const [west, south, east, north] = bbox;
-  const z = chooseZoom(Math.max(east - west, 1e-6), widthPx, header.minZoom, header.maxZoom);
+  const z = chooseZoom(Math.max(east - west, 1e-6), widthPx, reader.minZoom, reader.maxZoom);
   const x0 = lngToTileX(west, z);
   const x1 = lngToTileX(east, z);
   // Latitude and tile-y both run the opposite way (north is smaller y).
@@ -166,29 +256,26 @@ export async function streetLayersForBbox(
   const out: StreetLayers = { water: [], landuse: [], roads: [] };
   let sawAny = false;
 
-  for (const [x, y] of tiles) {
-    let resp: RangeResponse | undefined;
-    try {
-      resp = await pmtiles.getZxy(z, x, y);
-    } catch {
-      continue;
-    }
-    if (!resp) continue;
+  const fetched = await Promise.all(tiles.map(([x, y]) => reader.getZxy(z, x, y).catch(() => undefined)));
+  for (const [index, [x, y]] of tiles.entries()) {
+    const data = fetched[index];
+    if (!data) continue;
     sawAny = true;
     let tile: VectorTile;
     try {
-      tile = new VectorTile(new Pbf(new Uint8Array(resp.data)));
+      tile = new VectorTile(new Pbf(new Uint8Array(data)));
     } catch {
       continue;
     }
     for (const name of LAYER_NAMES) {
-      const layer = tile.layers[name];
+      const layer = tile.layers[reader.layerNames[name]];
       if (!layer) continue;
       const bucket = out[name];
       for (let i = 0; i < layer.length; i++) {
         const feature = layer.feature(i);
         // Regional frames need the road network, not every residential street.
-        const kind = feature.properties.kind;
+        const kind = name === "roads" ? reader.roadKind(feature.properties) : undefined;
+        if (name === "roads" && kind === undefined) continue;
         if (
           name === "roads" && z < 12 &&
           kind !== "highway" && kind !== "major_road" &&
@@ -216,6 +303,7 @@ export async function streetLayersForBbox(
     }
   }
 
+  out.complete = fetched.every((data) => data !== undefined);
   return sawAny ? out : null;
 }
 

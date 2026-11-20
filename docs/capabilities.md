@@ -133,15 +133,27 @@ assistant is the operator's own and unmetered.
 | Feature | Needs | Off means |
 | --- | --- | --- |
 | `routeRecording` | nothing of its own, and a journal must switch it on for itself | the iPhone app records no GPS history, and the two owner-cookie doors that read it back (a place name for a day, the owner's own recorded route) stay closed |
-| `streetMaps` | `MAPS_DIR` with a readable `world.pmtiles` (`npm run maps:world`) | every map is the drawn SVG map; no street tiles anywhere |
+| `streetMaps` | `"provider": "openfreemap"` (nothing else), or the default `"local"`: `MAPS_DIR` with a readable `world.pmtiles` (`npm run maps:world`) | every map is the drawn SVG map; no street tiles anywhere |
 
-Street detail comes from one of two sources, both OpenStreetMap data cut
+`features.streetMaps.provider` picks where the tiles come from:
+
+- **`"openfreemap"`** — [OpenFreeMap](https://openfreemap.org)'s hosted
+  planet (OpenMapTiles schema, z0–14): free, no key, no account, commercial
+  use allowed, no files on this server. Readers' browsers fetch tiles and
+  fonts from `tiles.openfreemap.org` (allowed in the page's
+  `connect-src`), and the server fetches the few tiles a trip card needs from
+  there too. It comes with no guarantee: if it goes away, set the provider
+  back to `"local"`. What fernscout.ch uses.
+- **`"local"`** (the default) — PMTiles files under `MAPS_DIR`, described
+  below.
+
+Local street detail comes from one of two sources, both OpenStreetMap data cut
 from a Protomaps build (credited on every map and card):
 
 - **`npm run maps:planet`** puts the whole world at street level in
   `MAPS_DIR/planet.pmtiles` — about 120 GB, resumable, needs the same again
   free while it downloads. Every trip, day and place then has streets with
-  nothing else to run. What fernscout.ch uses.
+  nothing else to run.
 - **`npm run maps:trip -- <user> <trip>`** cuts just one trip's regions
   (tens to hundreds of MB each) — for a small instance without the disk.
   Run by hand; a trip without one shows the drawn map.

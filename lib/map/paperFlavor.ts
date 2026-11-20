@@ -1,5 +1,7 @@
 import { layers, LIGHT, DARK, type Flavor } from "@protomaps/basemaps";
 import type { StyleSpecification } from "maplibre-gl";
+import { isOpenFreeMap } from "./openFreeMap";
+import { paperOpenMapTilesStyle } from "./paperOpenMapTiles";
 
 /**
  * Fernscout's own recolouring of Protomaps' basemap — B2535, the visual spec
@@ -144,6 +146,9 @@ export function paperStyle(
   scheme: "light" | "dark",
   lang: string,
 ): StyleSpecification {
+  // FERN-6: the operator chose OpenFreeMap — a different tile schema, so a
+  // different layer set in the same Paper colours.
+  if (isOpenFreeMap(pmtilesUrl)) return paperOpenMapTilesStyle(scheme, lang);
   const flavor = scheme === "dark" ? PAPER_DARK : PAPER_LIGHT;
   const opts = { lang: lang.split("-")[0] };
   const worldLayers = layers("world", flavor, opts)

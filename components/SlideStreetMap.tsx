@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import type { GeoJSONSource, Map as MapLibreMap, Marker as MapLibreMarker } from "maplibre-gl";
 import type { PlaceView } from "./WorldMap";
+import { isOpenFreeMap } from "@/lib/map/openFreeMap";
 
 /** The camera's zoom on one place — a town and its streets, not a district. */
 const STOP_ZOOM = 11.5;
@@ -256,14 +257,22 @@ const SlideStreetMap = forwardRef<SlideStreetMapHandle, Props>(function SlideStr
     // the slides drawn over it.
     <div className="absolute inset-0 isolate bg-overlay-strong">
       <div ref={containerRef} className="h-full w-full" />
-      <a
-        href="https://www.openstreetmap.org/copyright"
-        target="_blank"
-        rel="noreferrer"
-        className="absolute bottom-2 right-3 z-10 text-[10px] text-overlay-ink/60"
-      >
-        © OpenStreetMap
-      </a>
+      <span className="absolute bottom-2 right-3 z-10 text-[10px] text-overlay-ink/60">
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+          © OpenStreetMap
+        </a>
+        {isOpenFreeMap(pmtilesUrl) && (
+          <>
+            {" · "}
+            <a href="https://openfreemap.org" target="_blank" rel="noreferrer">
+              OpenFreeMap
+            </a>{" "}
+            <a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">
+              © OpenMapTiles
+            </a>
+          </>
+        )}
+      </span>
     </div>
   );
 });
